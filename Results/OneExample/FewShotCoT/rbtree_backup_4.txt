@@ -1,0 +1,38 @@
+### CORRECTED PERSISTENT MEMORY PROGRAM
+''' C
+/*
+ * rbtree_map_insert_bst -- (internal) inserts a node in regular BST fashion
+ */
+static void
+rbtree_map_insert_bst(TOID(struct rbtree_map) map, TOID(struct tree_map_node) n)
+{
+	TOID(struct tree_map_node) parent = D_RO(map)->root;
+	TOID(struct tree_map_node) *dst = &RB_FIRST(map);
+	TOID(struct tree_map_node) s = D_RO(map)->sentinel;
+
+	PM_EQU(D_RW(n)->slots[RB_LEFT], s);
+	PM_EQU(D_RW(n)->slots[RB_RIGHT], s);
+
+	while (!NODE_IS_NULL(*dst)) {
+		parent = *dst;
+		dst = &D_RW(*dst)->slots[D_RO(n)->key > D_RO(*dst)->key];
+	}
+	
+	TX_BEGIN(pop) {
+		TX_ADD_DIRECT(dst);
+		TX_ADD_DIRECT(n);
+		TX_SET(n, parent, parent);
+		PM_EQU(*dst, n);
+	} TX_END
+
+}
+'''.
+
+### Explanation
+In the correction, the code is wrapped inside a transaction block using `TX_BEGIN` and `TX_END`. 
+Inside the transaction block, two new lines are added:
+1. `TX_ADD_DIRECT(dst);` - This line registers `dst` as a part of the transaction, ensuring that any changes made to `dst` are properly recorded. 
+2. `TX_ADD_DIRECT(n);` - This line registers `n` as a part of the transaction, ensuring that any changes made to `n` are properly recorded.
+
+By adding these lines, the transaction system ensures that the assignments of `parent` and `n` to their respective variables are properly recorded. 
+If the transaction is successful, these changes will be committed, and if the transaction aborts, they will be rolled back, maintaining the consistency of your persistent memory data structures.

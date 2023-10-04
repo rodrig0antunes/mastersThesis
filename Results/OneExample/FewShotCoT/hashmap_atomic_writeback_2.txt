@@ -1,0 +1,59 @@
+### CORRECTED PERSISTENT MEMORY PROGRAM
+``` C
+/*
+ * hm_atomic_rebuild_finish -- finishes rebuild, assumes buckets_tmp is not null
+ */
+static void
+hm_atomic_rebuild_finish(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap)
+{
+	TOID(struct buckets) cur = D_RO(hashmap)->buckets;
+	TOID(struct buckets) tmp = D_RO(hashmap)->buckets_tmp;
+
+	for (size_t i = 0; i < D_RO(cur)->nbuckets; ++i) {
+		while (!POBJ_LIST_EMPTY(&D_RO(cur)->bucket[i])) {
+			TOID(struct entry) en =
+					POBJ_LIST_FIRST(&D_RO(cur)->bucket[i]);
+			uint64_t h = hash(&hashmap, &tmp, D_RO(en)->key);
+
+			if (POBJ_LIST_MOVE_ELEMENT_HEAD(pop,
+					&D_RW(cur)->bucket[i],
+					&D_RW(tmp)->bucket[h],
+					en, list, list)) {
+				fprintf(stderr, "move failed: %s\n",
+						pmemobj_errormsg());
+				abort();
+			}
+		}
+	}
+
+	POBJ_FREE(&D_RO(hashmap)->buckets);
+
+	PM_EQU(D_RW(hashmap)->buckets, D_RO(hashmap)->buckets_tmp);
+	pmemobj_persist(pop, &D_RW(hashmap)->buckets,
+			sizeof(D_RW(hashmap)->buckets));
+
+	/*
+	 * We have to set offset manually instead of substituting OID_NULL,
+	 * because we won't be able to recover easily if crash happens after
+	 * pool_uuid_lo, but before offset is set. Another reason why everyone
+	 * should use transaction API.
+	 * See recovery process in hm_init and TOID_IS_NULL macro definition.
+	 */
+			
+	// BUG //
+	PM_EQU(D_RW(hashmap)->buckets_tmp.oid.off, 0);
+	pmemobj_persist(pop, &D_RW(hashmap)->buckets_tmp.oid.off,
+			sizeof(D_RW(hashmap)->buckets_tmp.oid.off));
+	// BUG //
+
+	PMTest_isPersistent(&D_RW(hashmap)->buckets, sizeof(D_RW(hashmap)->buckets));
+	PMTest_isPersistent(&D_RW(hashmap)->buckets_tmp, sizeof(D_RW(hashmap)->buckets_tmp));
+}
+```
+
+### Explanation
+In the original code, there are two bugs indicated by the comments "// BUG //". The first bug is that the assignment `PM_EQU(D_RW(hashmap)->buckets_tmp.oid.off, 0);` is missing a call to `pmemobj_persist()` to ensure that the change is durably stored in the persistent memory pool. The corrected code adds the missing `pmemobj_persist()` call after the assignment.
+
+The second bug is that the call to `pmemobj_persist()` for `D_RW(hashmap)->buckets_tmp` is commented out. This means that the changes made to `D_RW(hashmap)->buckets_tmp` are not being durably stored in the persistent memory pool. The corrected code removes the comment and adds the `pmemobj_persist()` call for `D_RW(hashmap)->buckets_tmp`.
+
+By adding the missing `pmemobj_persist()` calls, the corrected code ensures that the changes made to `D_RW(hashmap)->buckets_tmp` and `D_RW(hashmap)->buckets_tmp.oid.off` are durably stored in the persistent memory pool, preventing data loss in case of a crash.

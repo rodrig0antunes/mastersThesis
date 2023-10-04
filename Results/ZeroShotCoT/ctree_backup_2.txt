@@ -1,0 +1,77 @@
+To resolve the bug, we need to understand what the code is trying to achieve and then fix the problematic section.
+
+The code is trying to remove a key-value pair from a ctree_map. If the leaf node is found, it sets the ret variable to the leaf's slot. If the parent is NULL, indicating that the leaf is the root node, it removes the key-value pair by setting the key and slot to 0 and OID_NULL respectively.
+
+The bug is located in the else block where the parent is not NULL. It seems that the code is trying to swap the parent node with the remaining node and then free the parent node. However, the code is incomplete and contains errors.
+
+To fix the bug, we need to complete and correct the code in the else block. Let's replace the "// BUG //" comments with the corrected code:
+
+```C
+else {
+    /*
+    * In this situation:
+    *     parent
+    *    /     \
+    *   LEFT   RIGHT
+    * there's no point in leaving the parent internal node
+    * so it's swapped with the remaining node and then also freed.
+    */
+    TX_BEGIN(pop) {
+        struct tree_map_entry *dest = parent;
+        TOID(struct tree_map_node) node;
+        TOID_ASSIGN(node, parent->slot);
+        pmemobj_tx_add_range_direct(dest, sizeof(*dest));
+        *dest = D_RW(node)->entries[D_RO(node)->entries[0].key == leaf->key];
+        TX_FREE(node);
+    } TX_END
+}
+```
+
+Now the code should correctly swap the parent node with the remaining node and then free the parent node.
+
+Here's the corrected code:
+
+```C
+/*
+* ctree_map_remove -- removes key-value pair from the map
+*/
+PMEMoid
+ctree_map_remove(PMEMobjpool *pop, TOID(struct ctree_map) map, uint64_t key)
+{
+    struct tree_map_entry *parent = NULL;
+    struct tree_map_entry *leaf = ctree_map_get_leaf(map, key, &parent);
+    if (leaf == NULL)
+        return OID_NULL;
+
+    PMEMoid ret = leaf->slot;
+
+    if (parent == NULL) { /* root */
+        TX_BEGIN(pop) {
+            pmemobj_tx_add_range_direct(leaf, sizeof(*leaf));
+            PM_EQU(leaf->key, 0);
+            PM_EQU(leaf->slot, OID_NULL);
+        } TX_END
+    } else {
+        /*
+        * In this situation:
+        *     parent
+        *    /     \
+        *   LEFT   RIGHT
+        * there's no point in leaving the parent internal node
+        * so it's swapped with the remaining node and then also freed.
+        */
+        TX_BEGIN(pop) {
+            struct tree_map_entry *dest = parent;
+            TOID(struct tree_map_node) node;
+            TOID_ASSIGN(node, parent->slot);
+            pmemobj_tx_add_range_direct(dest, sizeof(*dest));
+            *dest = D_RW(node)->entries[D_RO(node)->entries[0].key == leaf->key];
+            TX_FREE(node);
+        } TX_END
+    }
+
+    return ret;
+}
+```
+
+Now the code should work correctly and remove the key-value pair from the ctree_map.

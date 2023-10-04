@@ -1,0 +1,47 @@
+To resolve the bug, we need to fix the code inside the `TX_BEGIN` and `TX_END` blocks. 
+
+The first bug is located at the beginning of the `TX_BEGIN` block. We need to initialize the `p` variable with the correct value. Currently, it is initialized with `&D_RW(map)->root`, but it should be initialized with `D_RW(map)->root`. 
+
+The second bug is located at the end of the `TX_BEGIN` block. We need to call the `ctree_map_insert_leaf` function with the correct arguments. Currently, it is called with `&D_RW(map)->root`, but it should be called with `p`. 
+
+Here is the corrected code:
+
+``` C
+/*
+ * ctree_map_insert -- inserts a new key-value pair into the map
+ */
+int
+ctree_map_insert(PMEMobjpool *pop, TOID(struct ctree_map) map,
+	uint64_t key, PMEMoid value)
+{
+	struct tree_map_entry *p = D_RW(map)->root;
+	int ret = 0;
+
+	/* descend the path until a best matching key is found */
+	TOID(struct tree_map_node) node;
+	while (!OID_IS_NULL(p->slot) &&
+		OID_INSTANCEOF(p->slot, struct tree_map_node)) {
+		TOID_ASSIGN(node, p->slot);
+		p = &D_RW(node)->entries[BIT_IS_SET(key, D_RW(node)->diff)];
+	}
+
+	struct tree_map_entry e = {key, value};
+	TX_BEGIN(pop) {
+		if (p->key == 0 || p->key == key) {
+			PM_EQU(*p, e);
+			pmemobj_tx_add_range_direct(p, sizeof(*p));
+		} else {
+			ctree_map_insert_leaf(p, e,
+					find_crit_bit(p->key, key));
+		}
+	} TX_ONABORT {
+		ret = 1;
+	} TX_END
+
+	// not needed for now
+	// printf("ret = %d\n", ret);
+	return ret;
+}
+```
+
+Please note that this correction assumes that the `D_RW` macro is correctly defined and that the `ctree_map_insert_leaf` and `find_crit_bit` functions are implemented correctly.

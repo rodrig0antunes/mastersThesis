@@ -1,0 +1,54 @@
+### CORRECTED PERSISTENT MEMORY PROGRAM
+''' C
+/*
+ * btree_map_remove_from_node -- (internal) removes element from node
+ */
+static void
+btree_map_remove_from_node(TOID(struct btree_map) map,
+	TOID(struct tree_map_node) node,
+	TOID(struct tree_map_node) parent, int p)
+{
+
+		// BUG //
+		TX_BEGIN(pop) {
+			TX_ADD(node);
+			if (TOID_IS_NULL(D_RO(node)->slots[0])) { /* leaf */
+				if (D_RO(node)->n == 1 || p == BTREE_ORDER - 2)
+					PM_EQU(D_RW(node)->items[p], EMPTY_ITEM);
+				else if (D_RO(node)->n != 1) {
+					PM_MEMMOVE(&D_RW(node)->items[p],
+						&D_RW(node)->items[p + 1],
+						sizeof(struct tree_map_node_item) *
+						(D_RO(node)->n - p));
+				}
+				PM_EQU(D_RW(node)->n, D_RO(node)->n - 1);
+				return;
+			}
+
+			/* can't delete from non-leaf nodes, remove successor */
+			TOID(struct tree_map_node) rchild = D_RW(node)->slots[p + 1];
+			TOID(struct tree_map_node) lp = node;
+			TOID(struct tree_map_node) lm =
+				btree_map_get_leftmost_leaf(map, rchild, &lp);
+
+			TX_ADD_FIELD(node, items[p]);
+			PM_EQU(D_RW(node)->items[p], D_RO(lm)->items[0]);
+
+			btree_map_remove_from_node(map, lm, lp, 0);
+
+			if (D_RO(lm)->n < BTREE_MIN) /* right child can be deficient now */
+				btree_map_rebalance(map, lm, lp,
+					TOID_EQUALS(lp, node) ? p + 1 : 0);
+		} TX_ONABORT {
+			// handle transaction abort
+		} TX_END
+		// BUG //
+}
+'''.
+
+### Explanation
+In the correction, the entire code block is wrapped inside a transaction using `TX_BEGIN` and `TX_END`. This ensures that the modifications made to the persistent memory are atomic and consistent. 
+
+Additionally, the `TX_ADD(node)` line is added before the check for a leaf node. This registers the `node` object as part of the transaction, allowing the modifications made to it to be properly recorded and committed or rolled back in case of a transaction abort.
+
+Finally, a `TX_ADD_FIELD(node, items[p])` line is added before assigning the value of `D_RO(lm)->items[0]` to `D_RW(node)->items[p]`. This registers the specific field `items[p]` of the `node` object as part of the transaction, ensuring that the modification to this field is properly recorded and committed or rolled back in case of a transaction abort.

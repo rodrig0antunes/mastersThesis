@@ -1,0 +1,51 @@
+### CORRECTED PERSISTENT MEMORY PROGRAM
+''' C
+/*
+ * ctree_map_insert_leaf -- (internal) inserts a new leaf at the position
+ */
+static void
+ctree_map_insert_leaf(struct tree_map_entry *p,
+	struct tree_map_entry e, int diff)
+{
+	TOID(struct tree_map_node) new_node = TX_NEW(struct tree_map_node);
+	//isPersistent(&(D_RW(new_node)->diff), sizeof(D_RW(new_node)->diff));
+	PM_EQU(D_RW(new_node)->diff, diff);
+
+	int d = BIT_IS_SET(e.key, D_RO(new_node)->diff);
+
+	/* insert the leaf at the direction based on the critical bit */
+	D_RW(new_node)->entries[d] = e;
+
+	/* find the appropriate position in the tree to insert the node */
+	TOID(struct tree_map_node) node;
+	while (OID_INSTANCEOF(p->slot, struct tree_map_node)) {
+		TOID_ASSIGN(node, p->slot);
+
+		/* the critical bits have to be sorted */
+		if (D_RO(node)->diff < D_RO(new_node)->diff)
+			break;
+
+		p = &D_RW(node)->entries[BIT_IS_SET(e.key, D_RO(node)->diff)];
+	}
+
+	// BUG //
+	
+	/* insert the found destination in the other slot */
+	PM_EQU(D_RW(new_node)->entries[!d], *p);
+	
+	PM_EQU(p->key, 0);
+	PM_EQU(p->slot, new_node.oid);
+
+	pmemobj_tx_add_range_direct(p, sizeof(*p));
+	
+	// BUG //
+	
+	pmemobj_tx_add_range_direct(new_node, sizeof(*new_node));
+}
+'''.
+
+## Explanation
+In the correction, two lines are added to fix the bugs in the program. 
+The first bug is fixed by adding the line 'pmemobj_tx_add_range_direct(p, sizeof(*p));' after the assignment 'PM_EQU(p->slot, new_node.oid);'. This line tells the transaction system that the range of memory starting from 'p' and with a size of 'sizeof(*p)' is intended to be modified during the transaction. It ensures that if the transaction aborts, the changes to 'p' are rolled back as well. By adding 'pmemobj_tx_add_range_direct(p, sizeof(*p));', the transaction system properly records the changes made to 'p' and ensures that they are committed if the transaction is successful or rolled back if the transaction aborts.
+
+The second bug is fixed by adding the line 'pmemobj_tx_add_range_direct(new_node, sizeof(*new_node));' after the line 'pmemobj_tx_add_range_direct(p, sizeof(*p));'. This line tells the transaction system that the range of memory starting from 'new_node' and with a size of 'sizeof(*new_node)' is intended to be modified during the transaction. It ensures that if the transaction aborts, the changes to 'new_node' are rolled back as well. By adding 'pmemobj_tx_add_range_direct(new_node, sizeof(*new_node));', the transaction system properly records the changes made to 'new_node' and ensures that they are committed if the transaction is successful or rolled back if the transaction aborts.

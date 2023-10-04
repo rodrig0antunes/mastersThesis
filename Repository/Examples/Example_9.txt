@@ -1,0 +1,60 @@
+## Example
+int main(int argc, char *argv[]) {
+
+    const char *pmem_file = argv[1];
+    PMEMobjpool *pop;
+
+    if ((pop = pmemobj_create(pmem_file, NULL, PMEMOBJ_MIN_POOL, 0666)) == NULL) {
+        perror("pmemobj_create");
+        return 1;
+    }
+
+    PMEMoid value = pmemobj_tx_alloc(sizeof(int), 0);
+    if (PMEMOID_IS_NULL(value)) {
+        perror("pmemobj_tx_alloc");
+        pmemobj_close(pop);
+        return 1;
+    }
+
+    int *value_ptr = pmemobj_direct(value);
+
+    if (*value_ptr == 42) {
+        TX_ADD(value);
+        TX_ADD(value);
+    }
+
+    pmemobj_close(pop);
+
+    return 0;
+}
+## Correction 
+int main(int argc, char *argv[]) {
+    
+    const char *pmem_file = argv[1];
+    PMEMobjpool *pop;
+
+    if ((pop = pmemobj_create(pmem_file, NULL, PMEMOBJ_MIN_POOL, 0666)) == NULL) {
+        perror("pmemobj_create");
+        return 1;
+    }
+
+    PMEMoid value = pmemobj_tx_alloc(sizeof(int), 0);
+    if (PMEMOID_IS_NULL(value)) {
+        perror("pmemobj_tx_alloc");
+        pmemobj_close(pop);
+        return 1;
+    }
+
+    int *value_ptr = pmemobj_direct(value);
+
+    if (*value_ptr == 42) {
+        TX_ADD(value);
+    }
+
+    pmemobj_close(pop);
+
+    return 0;
+}
+## Explanation
+In the correction, one of the 'TX_ADD(value);' calls has been removed because it is redundant.
+The correction eliminates unnecessary overhead and maintains the correct behaviour intended in the code, including the value in the transaction if the condition is met, preserving the correct transactional behaviour.

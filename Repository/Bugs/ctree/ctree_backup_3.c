@@ -1,0 +1,41 @@
+/*
+ * ctree_map_insert -- inserts a new key-value pair into the map
+ */
+int
+ctree_map_insert(PMEMobjpool *pop, TOID(struct ctree_map) map,
+	uint64_t key, PMEMoid value)
+{
+	struct tree_map_entry *p = &D_RW(map)->root;
+	int ret = 0;
+
+	/* descend the path until a best matching key is found */
+	TOID(struct tree_map_node) node;
+	while (!OID_IS_NULL(p->slot) &&
+		OID_INSTANCEOF(p->slot, struct tree_map_node)) {
+		TOID_ASSIGN(node, p->slot);
+		p = &D_RW(node)->entries[BIT_IS_SET(key, D_RW(node)->diff)];
+	}
+
+	struct tree_map_entry e = {key, value};
+	TX_BEGIN(pop) {
+		
+		// BUG //
+
+		if (p->key == 0 || p->key == key) {
+			PM_EQU(*p, e);
+			pmemobj_tx_add_range_direct(p, sizeof(*p));
+		} else {
+			ctree_map_insert_leaf(&D_RW(map)->root, e,
+					find_crit_bit(p->key, key));
+		
+		// BUG //
+
+		}
+	} TX_ONABORT {
+		ret = 1;
+	} TX_END
+
+	// not needed for now
+	// printf("ret = %d\n", ret);
+	return ret;
+}

@@ -1,0 +1,46 @@
+The bug is located in the code segment delimited by the expression '// BUG //'. 
+
+To resolve the bug, we need to fix the code inside this segment. 
+
+Let's analyze the bug and come up with a solution:
+
+The bug is related to the removal of items from the map. The code is using the 'map_remove' function to remove items from the map, but it is not checking if the item is actually removed or not. 
+
+To fix this bug, we need to add a check after calling the 'map_remove' function to ensure that the item is successfully removed from the map. If the item is not removed, we can print an error message and return from the function.
+
+Here is the corrected code:
+
+``` C
+/* remove the items without outer transaction */
+for (int i = 0; i < nkeys; ++i) {
+    metadataPtr = metadataVectorPtr[i];
+    PMTest_START;
+
+    // BUG //
+    if (strcmp("hashmap_atomic", type))
+        PMTest_CHECKER_START;
+
+    PMEMoid item;
+    if (i % 2 == 0)
+        item = map_remove(mapc, D_RW(root)->map, keys[i/2]);
+    else
+        item = map_remove(mapc, D_RW(root)->map, keys[nkeys-(i+1)/2]);
+
+    // Check if item is removed successfully
+    if (OID_IS_NULL(item)) {
+        printf("Failed to remove item from map\n");
+        return 1;
+    }
+
+    // BUG //
+
+    if (strcmp("hashmap_atomic", type))
+        PMTest_CHECKER_END;
+    PMTest_END;
+    C_execVeri(p, metadataPtr);
+
+    assert(OID_INSTANCEOF(item, struct store_item));
+}
+```
+
+Now the bug is fixed and the program should work as expected.

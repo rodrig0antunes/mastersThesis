@@ -1,0 +1,45 @@
+### CORRECTED PERSISTENT MEMORY PROGRAM
+``` C
+/*
+ * ctree_map_remove -- removes key-value pair from the map
+ */
+PMEMoid
+ctree_map_remove(PMEMobjpool *pop, TOID(struct ctree_map) map, uint64_t key)
+{
+	struct tree_map_entry *parent = NULL;
+	struct tree_map_entry *leaf = ctree_map_get_leaf(map, key, &parent);
+	if (leaf == NULL)
+		return OID_NULL;
+
+	PMEMoid ret = leaf->slot;
+
+	if (parent == NULL) { /* root */
+		TX_BEGIN(pop) {
+			pmemobj_tx_add_range_direct(leaf, sizeof(*leaf));
+			PM_EQU(leaf->key, 0);
+			PM_EQU(leaf->slot, OID_NULL);
+		} TX_END
+	} else {
+		/*
+		 * In this situation:
+		 *	 parent
+		 *	/     \
+		 *   LEFT   RIGHT
+		 * there's no point in leaving the parent internal node
+		 * so it's swapped with the remaining node and then also freed.
+		 */
+		TX_BEGIN(pop) {
+			pmemobj_tx_add_range_direct(parent, sizeof(*parent));
+			struct tree_map_entry *dest = parent;
+			TOID(struct tree_map_node) node;
+			TOID_ASSIGN(node, parent->slot);
+			pmemobj_tx_add_range_direct(D_RW(node)->entries, sizeof(D_RW(node)->entries));
+			PM_EQU(*dest, D_RW(node)->entries[
+				D_RO(node)->entries[0].key == leaf->key]);
+			TX_FREE(node);
+		} TX_END
+	}
+
+	return ret;
+}
+```

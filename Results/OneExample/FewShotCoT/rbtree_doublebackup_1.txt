@@ -1,0 +1,39 @@
+### CORRECTED PERSISTENT MEMORY PROGRAM
+''' C
+/*
+ * rbtree_map_rotate -- (internal) performs a left/right rotation around a node
+ */
+static void
+rbtree_map_rotate(TOID(struct rbtree_map) map,
+	TOID(struct tree_map_node) node, enum rb_children c)
+{
+	TOID(struct tree_map_node) child = D_RO(node)->slots[!c];
+		
+		// BUG //
+		TX_BEGIN(pop) {
+			TX_ADD(node);
+			TX_ADD(child);
+
+			PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
+
+			if (!TOID_EQUALS(D_RO(child)->slots[c], s))
+				TX_SET(D_RW(child)->slots[c], parent, node);
+
+			PM_EQU(NODE_P(child), NODE_P(node));
+
+			TX_SET(NODE_P(node), slots[NODE_LOCATION(node)], child);
+
+			PM_EQU(D_RW(child)->slots[c], node);
+			PM_EQU(D_RW(node)->parent, child);
+		} TX_ONABORT {
+			fprintf(stderr, "%s: transaction aborted: %s\n", __func__,
+				pmemobj_errormsg());
+			abort();
+		} TX_END
+		// BUG //
+}
+'''.
+
+### Explanation
+In the correction, the missing transaction block has been added to the code. The code between the two '// BUG //' expressions has been wrapped inside a transaction block using 'TX_BEGIN' and 'TX_END'.
+This ensures that the modifications made to the persistent memory are atomic and consistent. Additionally, the necessary 'TX_ADD' statements have been included to indicate the objects that are part of the transaction.

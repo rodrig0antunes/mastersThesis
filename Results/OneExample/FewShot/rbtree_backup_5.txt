@@ -1,0 +1,79 @@
+### CORRECTED PERSISTENT MEMORY PROGRAM
+``` C
+/*
+ * rbtree_map_repair_branch -- (internal) restores red-black tree in one branch
+ */
+static TOID(struct tree_map_node)
+rbtree_map_repair_branch(TOID(struct rbtree_map) map,
+	TOID(struct tree_map_node) n, enum rb_children c)
+{
+
+	// BUG //
+	TX_BEGIN(map.oid.pool) {
+		TX_ADD_DIRECT(n);
+		TX_ADD_DIRECT(map);
+		TX_ADD_DIRECT(NODE_PARENT_AT(n, !c));
+		TX_ADD_DIRECT(NODE_P(n));
+		TX_ADD_DIRECT(D_RO(NODE_P(n))->slots[!c]);
+		TX_ADD_DIRECT(D_RO(D_RO(NODE_PARENT_AT(n, !c)))->slots[!c]);
+		TX_ADD_DIRECT(D_RO(D_RO(NODE_PARENT_AT(n, !c)))->slots[c]);
+		TX_ADD_DIRECT(D_RO(D_RO(D_RO(NODE_PARENT_AT(n, !c)))->slots[!c])->slots[RB_LEFT]);
+		TX_ADD_DIRECT(D_RO(D_RO(D_RO(NODE_PARENT_AT(n, !c)))->slots[!c])->slots[RB_RIGHT]);
+		TX_ADD_DIRECT(D_RO(D_RO(D_RO(NODE_PARENT_AT(n, !c)))->slots[c])->slots[RB_LEFT]);
+		TX_ADD_DIRECT(D_RO(D_RO(D_RO(NODE_PARENT_AT(n, !c)))->slots[c])->slots[RB_RIGHT]);
+
+		TOID(struct tree_map_node) sb = NODE_PARENT_AT(n, !c); /* sibling */
+		if (D_RO(sb)->color == COLOR_RED) {
+			PM_EQU(D_RW(sb)->color, COLOR_BLACK);
+			TX_SET(NODE_P(n), color, COLOR_RED);
+			rbtree_map_rotate(map, NODE_P(n), c);
+			sb = NODE_PARENT_AT(n, !c);
+		}
+	} TX_ONABORT {
+		// handle transaction abort
+	} TX_END;
+	// BUG //
+
+	if (D_RO(D_RO(sb)->slots[RB_RIGHT])->color == COLOR_BLACK &&
+		D_RO(D_RO(sb)->slots[RB_LEFT])->color == COLOR_BLACK) {
+		TX_BEGIN(map.oid.pool) {
+			TX_ADD_DIRECT(sb);
+			TX_SET(sb, color, COLOR_RED);
+		} TX_ONABORT {
+			// handle transaction abort
+		} TX_END;
+		return D_RO(n)->parent;
+	} else {
+		if (D_RO(D_RO(sb)->slots[!c])->color == COLOR_BLACK) {
+			TX_BEGIN(map.oid.pool) {
+				TX_ADD_DIRECT(D_RO(sb)->slots[c]);
+				TX_ADD_DIRECT(sb);
+				TX_SET(D_RW(sb)->slots[c], color, COLOR_BLACK);
+				TX_SET(sb, color, COLOR_RED);
+				rbtree_map_rotate(map, sb, !c);
+				sb = NODE_PARENT_AT(n, !c);
+			} TX_ONABORT {
+				// handle transaction abort
+			} TX_END;
+		}
+		TX_BEGIN(map.oid.pool) {
+			TX_ADD_DIRECT(sb);
+			TX_ADD_DIRECT(NODE_P(n));
+			TX_ADD_DIRECT(D_RO(NODE_P(n))->slots[!c]);
+			TX_ADD_DIRECT(D_RO(sb)->slots[!c]);
+			TX_ADD_DIRECT(D_RO(D_RO(sb)->slots[!c])->slots[RB_LEFT]);
+			TX_ADD_DIRECT(D_RO(D_RO(sb)->slots[!c])->slots[RB_RIGHT]);
+			TX_SET(sb, color, D_RO(NODE_P(n))->color);
+			TX_SET(NODE_P(n), color, COLOR_BLACK);
+			TX_SET(D_RW(sb)->slots[!c], color, COLOR_BLACK);
+			rbtree_map_rotate(map, NODE_P(n), c);
+		} TX_ONABORT {
+			// handle transaction abort
+		} TX_END;
+
+		return RB_FIRST(map);
+	}
+
+	return n;
+}
+```

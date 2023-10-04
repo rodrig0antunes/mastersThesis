@@ -1,0 +1,31 @@
+To resolve the bug, we need to identify the issue and make the necessary corrections. 
+
+Looking at the code, the first bug is located at the line:
+
+```C
+TOID(struct tree_map_node) sb = NODE_PARENT_AT(n, !c); /* sibling */
+```
+
+To fix this bug, we need to replace `NODE_PARENT_AT` with `NODE_PARENT`. 
+
+The corrected code will be:
+
+```C
+TOID(struct tree_map_node) sb = NODE_PARENT(n); /* sibling */
+```
+
+Now, let's move on to the second bug. It is located at the line:
+
+```C
+sb = NODE_PARENT_AT(n, !c);
+```
+
+To fix this bug, we need to replace `NODE_PARENT_AT` with `NODE_PARENT`. 
+
+The corrected code will be:
+
+```C
+sb = NODE_PARENT(n);
+```
+
+Now, let's put the whole corrected program together.

@@ -1,0 +1,45 @@
+### CORRECTED PERSISTENT MEMORY PROGRAM
+''' C
+/*
+ * ctree_map_insert_leaf -- (internal) inserts a new leaf at the position
+ */
+static void
+ctree_map_insert_leaf(struct tree_map_entry *p,
+	struct tree_map_entry e, int diff)
+{
+	TOID(struct tree_map_node) new_node = TX_NEW(struct tree_map_node);
+	//isPersistent(&(D_RW(new_node)->diff), sizeof(D_RW(new_node)->diff));
+	PM_EQU(D_RW(new_node)->diff, diff);
+
+	int d = BIT_IS_SET(e.key, D_RO(new_node)->diff);
+
+	/* insert the leaf at the direction based on the critical bit */
+	D_RW(new_node)->entries[d] = e;
+
+	/* find the appropriate position in the tree to insert the node */
+	TOID(struct tree_map_node) node;
+	while (OID_INSTANCEOF(p->slot, struct tree_map_node)) {
+		TOID_ASSIGN(node, p->slot);
+
+		/* the critical bits have to be sorted */
+		if (D_RO(node)->diff < D_RO(new_node)->diff)
+			break;
+
+		p = &D_RW(node)->entries[BIT_IS_SET(e.key, D_RO(node)->diff)];
+	}
+
+	/* insert the found destination in the other slot */
+		
+		// BUG //
+	PM_EQU(D_RW(new_node)->entries[!d], *p);
+	pmemobj_tx_add_range_direct(&D_RW(new_node)->entries[!d], sizeof(struct tree_map_entry));
+	pmemobj_tx_add_range_direct(p, sizeof(struct tree_map_entry));
+	PM_EQU(p->key, 0);
+	PM_EQU(p->slot, new_node.oid);
+		// BUG //
+}
+'''.
+
+### Explanation
+In the correction, the missing code has been added between the '// BUG //' markers. The missing code is responsible for adding the modified objects to the transaction using 'pmemobj_tx_add_range_direct' function. 
+The corrected code adds the modified objects 'D_RW(new_node)->entries[!d]' and 'p' to the transaction using 'pmemobj_tx_add_range_direct' function. This ensures that the modifications made to these objects are persistent and will be committed to the persistent memory.

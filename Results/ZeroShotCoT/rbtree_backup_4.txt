@@ -1,0 +1,52 @@
+To resolve the bug in the given program, let's analyze the code step by step:
+
+1. The function `rbtree_map_insert_bst` is used to insert a node in a binary search tree (BST) fashion.
+
+2. The variable `parent` is initialized with the root of the tree.
+
+3. The variable `dst` is a pointer to the first node of the tree.
+
+4. The variable `s` is a sentinel node.
+
+5. The lines `PM_EQU(D_RW(n)->slots[RB_LEFT], s);` and `PM_EQU(D_RW(n)->slots[RB_RIGHT], s);` set the left and right slots of the node `n` to the sentinel node `s`.
+
+6. The while loop iterates until it finds the correct position to insert the node `n` in the BST. It updates the `parent` and `dst` variables accordingly.
+
+7. The first bug is located after the while loop. The line `TX_SET(n, parent, parent);` is incorrect. It seems like the intention is to set the parent of the node `n` to `parent`. However, the correct syntax to achieve this is `D_RW(n)->parent = parent;`.
+
+8. The line `PM_EQU(*dst, n);` is correct and sets the value of `dst` to `n`.
+
+9. The second bug is located after the line `PM_EQU(*dst, n);`. The line `pmemobj_tx_add_range_direct(dst, sizeof(*dst));` is commented out. To make this line effective, uncomment it by removing the `//` at the beginning.
+
+To summarize, the corrected code is as follows:
+
+``` C
+/*
+* rbtree_map_insert_bst -- (internal) inserts a node in regular BST fashion
+*/
+static void
+rbtree_map_insert_bst(TOID(struct rbtree_map) map, TOID(struct tree_map_node) n)
+{
+    TOID(struct tree_map_node) parent = D_RO(map)->root;
+    TOID(struct tree_map_node) *dst = &RB_FIRST(map);
+    TOID(struct tree_map_node) s = D_RO(map)->sentinel;
+
+    PM_EQU(D_RW(n)->slots[RB_LEFT], s);
+    PM_EQU(D_RW(n)->slots[RB_RIGHT], s);
+
+    while (!NODE_IS_NULL(*dst)) {
+        parent = *dst;
+        dst = &D_RW(*dst)->slots[D_RO(n)->key > D_RO(*dst)->key];
+    }
+
+    // BUG //
+    D_RW(n)->parent = parent;
+
+    pmemobj_tx_add_range_direct(dst, sizeof(*dst));
+    PM_EQU(*dst, n);
+
+    // BUG //
+}
+```
+
+Please note that the code provided assumes that the necessary header files and definitions are present in the program.

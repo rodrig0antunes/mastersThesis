@@ -1,0 +1,50 @@
+### CORRECTED PERSISTENT MEMORY PROGRAM
+``` C
+/*
+ * hm_tx_remove -- removes specified value from the hashmap,
+ * returns:
+ * - key's value if successful,
+ * - OID_NULL if value didn't exist or if something bad happened
+ */
+PMEMoid
+hm_tx_remove(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint64_t key)
+{
+	TOID(struct buckets) buckets = D_RO(hashmap)->buckets;
+	TOID(struct entry) var, prev = TOID_NULL(struct entry);
+
+	uint64_t h = hash(&hashmap, &buckets, key);
+	for (var = D_RO(buckets)->bucket[h];
+			!TOID_IS_NULL(var);
+			prev = var, var = D_RO(var)->next) {
+		if (D_RO(var)->key == key)
+			break;
+	}
+
+	if (TOID_IS_NULL(var))
+		return OID_NULL;
+
+	TX_BEGIN(pop) {
+		if (TOID_IS_NULL(prev))
+			TX_ADD_FIELD(D_RW(buckets), bucket[h]);
+		else
+			TX_ADD_FIELD(D_RW(prev), next);
+		TX_ADD_FIELD(D_RW(hashmap), count);
+
+		if (TOID_IS_NULL(prev))
+			PM_EQU(D_RW(buckets)->bucket[h], D_RO(var)->next);
+		else
+			PM_EQU(D_RW(prev)->next, D_RO(var)->next);
+		PM_EQU(D_RW(hashmap)->count, D_RO(hashmap)->count - 1);
+		TX_FREE(var);
+	} TX_ONABORT {
+		fprintf(stderr, "transaction aborted: %s\n",
+			pmemobj_errormsg());
+		return OID_NULL;
+	} TX_END
+
+	if (D_RO(hashmap)->count < D_RO(buckets)->nbuckets)
+		hm_tx_rebuild(pop, hashmap, D_RO(buckets)->nbuckets / 2);
+
+	return D_RO(var)->value;
+}
+```

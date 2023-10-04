@@ -1,0 +1,47 @@
+### Corrected Persistent Memory Program
+``` C
+/*
+ * btree_map_insert_node -- (internal) inserts and makes space for new node
+ */
+static void
+btree_map_insert_node(TOID(struct tree_map_node) node, int p,
+	struct tree_map_node_item item,
+	TOID(struct tree_map_node) left, TOID(struct tree_map_node) right)
+{
+	TX_ADD(node);
+	if (D_RO(node)->items[p].key != 0) { /* move all existing data */
+		PMEMobjpool *pop = pmemobj_pool_by_ptr(node);
+		PMEMoid items_oid = pmemobj_oid(&D_RW(node)->items[p]);
+		PMEMoid slots_oid = pmemobj_oid(&D_RW(node)->slots[p]);
+		PMEMoid dest_items_oid = pmemobj_oid(&D_RW(node)->items[p + 1]);
+		PMEMoid dest_slots_oid = pmemobj_oid(&D_RW(node)->slots[p + 1]);
+		size_t items_size = sizeof(struct tree_map_node_item) * (BTREE_ORDER - 2 - p);
+		size_t slots_size = sizeof(TOID(struct tree_map_node)) * (BTREE_ORDER - 1 - p);
+
+		PMEMoid temp_oid;
+		PMEMoid temp_dest_oid;
+
+		// Move items
+		PMEMoid temp_items_oid = items_oid;
+		PMEMoid temp_dest_items_oid = dest_items_oid;
+		for (size_t i = 0; i < items_size; i += sizeof(PMEMoid)) {
+			pmemobj_memcpy_persist(pop, &temp_dest_items_oid, &temp_items_oid, sizeof(PMEMoid));
+			temp_items_oid.off += sizeof(PMEMoid);
+			temp_dest_items_oid.off += sizeof(PMEMoid);
+		}
+
+		// Move slots
+		PMEMoid temp_slots_oid = slots_oid;
+		PMEMoid temp_dest_slots_oid = dest_slots_oid;
+		for (size_t i = 0; i < slots_size; i += sizeof(PMEMoid)) {
+			pmemobj_memcpy_persist(pop, &temp_dest_slots_oid, &temp_slots_oid, sizeof(PMEMoid));
+			temp_slots_oid.off += sizeof(PMEMoid);
+			temp_dest_slots_oid.off += sizeof(PMEMoid);
+		}
+	}
+	TX_ADD(node);
+	PM_EQU(D_RW(node)->slots[p], left);
+	PM_EQU(D_RW(node)->slots[p + 1], right);
+	btree_map_insert_item_at(node, p, item);
+}
+```

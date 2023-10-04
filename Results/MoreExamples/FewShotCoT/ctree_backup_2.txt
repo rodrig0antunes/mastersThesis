@@ -1,0 +1,54 @@
+### CORRECTED PERSISTENT MEMORY PROGRAM
+''' C
+/*
+ * ctree_map_remove -- removes key-value pair from the map
+ */
+PMEMoid
+ctree_map_remove(PMEMobjpool *pop, TOID(struct ctree_map) map, uint64_t key)
+{
+	struct tree_map_entry *parent = NULL;
+	struct tree_map_entry *leaf = ctree_map_get_leaf(map, key, &parent);
+	if (leaf == NULL)
+		return OID_NULL;
+
+	PMEMoid ret = leaf->slot;
+
+	if (parent == NULL) { /* root */
+		TX_BEGIN(pop) {
+			pmemobj_tx_add_range_direct(leaf, sizeof(*leaf));
+			PM_EQU(leaf->key, 0);
+			PM_EQU(leaf->slot, OID_NULL);
+		} TX_END
+	} else {
+		/*
+		 * In this situation:
+		 *	 parent
+		 *	/     \
+		 *   LEFT   RIGHT
+		 * there's no point in leaving the parent internal node
+		 * so it's swapped with the remaining node and then also freed.
+		 */
+		TX_BEGIN(pop) {
+				
+		// BUG //
+			struct tree_map_entry *dest = parent;
+			TOID(struct tree_map_node) node;
+			TOID_ASSIGN(node, parent->slot);
+			pmemobj_tx_add_range_direct(dest, sizeof(*dest));
+			PM_EQU(*dest, D_RW(node)->entries[
+				D_RO(node)->entries[0].key == leaf->key]);
+		// BUG //
+
+			TX_FREE(node);
+		} TX_END
+	}
+
+	return ret;
+}
+'''.
+
+## Explanation
+In the correction, the missing line 'pmemobj_tx_add_range_direct(dest, sizeof(*dest));' is added before the assignment 'PM_EQU(*dest, D_RW(node)->entries[D_RO(node)->entries[0].key == leaf->key]);'. 
+This line tells the transaction system that it is intended to modify the 'dest' pointer during the transaction. It essentially registers 'dest' as a part of the transaction, making sure that if the transaction aborts, the changes to 'dest' are rolled back as well.
+By adding 'pmemobj_tx_add_range_direct(dest, sizeof(*dest));', the transaction system ensures that the assignment to 'dest' is properly recorded. 
+If the transaction is successful, this change will be committed, and if the transaction aborts, it will be rolled back, maintaining the consistency of your persistent memory data structures.

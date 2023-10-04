@@ -1,0 +1,247 @@
+
+===== system =====
+
+You are a helpful programming assistant and an expert in the development of Persistent Memory programs. You are helping a user repair the errors inside a Persistent Memory program. 
+The user has written a program in the programming language C and the PMDK library libpmemobj. However, the program has some errors and is not working as expected. 
+The user has analysed the program with a bug detection tool and will provide you with a textual explanation of where the error is.  
+You will use this information to generate a corrected version of the program.
+In order to help locate the bug to repair an expression that signals the interval where the bug is will be provided. The beggining and end of the area of the code where 
+the fix is supposed to go will be delimited by the exprexion '// BUG //'.
+Put your corrected program within code delimiters, as follows:
+                ''' C
+                # YOUR CODE HERE
+                '''.
+
+===== user =====
+
+### EXAMPLES
+
+## Example
+''' C
+
+int
+hm_tx_create(PMEMobjpool *pop, TOID(struct hashmap_tx) *map, void *arg)
+{
+	struct hashmap_args *args = (struct hashmap_args *)arg;
+	int ret = 0;
+	TX_BEGIN(pop) {
+		*map = TX_ZNEW(struct hashmap_tx);
+
+		uint32_t seed = args ? args->seed : 0;
+		create_hashmap(pop, *map, seed);
+	} TX_ONABORT {
+		ret = -1;
+	} TX_END
+
+	return ret;
+}
+
+'''.
+
+===== assistant =====
+
+## Correction
+''' C
+
+int
+hm_tx_create(PMEMobjpool *pop, TOID(struct hashmap_tx) *map, void *arg)
+{
+	struct hashmap_args *args = (struct hashmap_args *)arg;
+	int ret = 0;
+	TX_BEGIN(pop) {
+		TX_ADD_DIRECT(map);
+		*map = TX_ZNEW(struct hashmap_tx);
+
+		uint32_t seed = args ? args->seed : 0;
+		create_hashmap(pop, *map, seed);
+	} TX_ONABORT {
+		ret = -1;
+	} TX_END
+
+	return ret;
+}
+
+'''.
+
+===== user =====
+
+### INCORRECT PERSISTENT MEMORY PROGRAM
+''' C
+int main(int argc, const char *argv[]) {
+	if (argc < 3) {
+		printf("usage: %s "
+			"<ctree|btree|rbtree|hashmap_atomic|hashmap_tx>"
+			" file-name [nops]\n", argv[0]);
+		return 1;
+	}
+
+	const char *type = argv[1];
+	const char *path = argv[2];
+	const struct map_ops *map_ops = parse_map_type(type);
+	if (!map_ops) {
+		fprintf(stderr, "invalid map type -- '%s'\n", type);
+		return 1;
+	}
+
+//	int nops = MAX_INSERTS;
+	int nops = atoi(argv[3]);
+
+	if (argc > 3) {
+		nops = atoi(argv[3]);
+		if (nops <= 0 || nops > MAX_INSERTS) {
+			fprintf(stderr, "number of operations must be "
+				"in range 1..%u\n", MAX_INSERTS);
+			return 1;
+		}
+	}
+
+	struct timeval tv_start;
+	struct timeval tv_end;
+
+	gettimeofday(&tv_start, 0);
+
+	PMEMobjpool *pop;
+	//srand(time(NULL));
+
+	if (access(path, F_OK) != 0) {
+		if ((pop = pmemobj_create(path, POBJ_LAYOUT_NAME(data_store),
+			PMEMOBJ_MIN_POOL, 0666)) == NULL) {
+			perror("failed to create pool\n");
+			return 1;
+		}
+	} else {
+		printf("open existing file\n");
+		if ((pop = pmemobj_open(path,
+				POBJ_LAYOUT_NAME(data_store))) == NULL) {
+			perror("failed to open pool\n");
+			return 1;
+		}
+	}
+	
+	gettimeofday(&tv_end, 0);
+	printf("obj init time=%lu us\n", 1000000 * (tv_end.tv_sec - tv_start.tv_sec) + 
+		(tv_end.tv_usec - tv_start.tv_usec));
+
+	void *p = C_createVeriInstance();
+	TOID(struct store_root) root = POBJ_ROOT(pop, struct store_root);
+
+	struct map_ctx *mapc = map_ctx_init(map_ops, pop);
+	if (!mapc) {
+		perror("cannot allocate map context\n");
+		return 1;
+	}
+	/* delete the map if it exists */
+	//if (!map_check(mapc, D_RW(root)->map))
+	//	map_delete(mapc, &D_RW(root)->map);
+
+	/* insert random items in a transaction */
+	int aborted = 0;
+
+	void *metadataVectorPtr[(nops>nkeys ? nops : nkeys)];
+	for (int i = 0; i < nops; i++) {
+		metadataVectorPtr[i] = C_createMetadataVector();
+	}
+
+	gettimeofday(&tv_start, 0);
+	
+	//TX_BEGIN(pop) {
+		map_new(mapc, &D_RW(root)->map, NULL);
+
+		for (int i = 0; i < nops; ++i) {
+			/* new_store_item is transactional! */
+			metadataPtr = metadataVectorPtr[i];
+			PMTest_START;
+			if (strcmp("hashmap_atomic", type))
+				PMTest_CHECKER_START;
+			TX_BEGIN(pop) {
+			map_insert(mapc, D_RW(root)->map, rand(),
+					new_store_item().oid);
+			} TX_END
+			if (strcmp("hashmap_atomic", type))
+				PMTest_CHECKER_END;
+			PMTest_END;
+			C_execVeri(p, metadataPtr);
+		}
+	//} TX_ONABORT {
+	//	perror("transaction aborted\n");
+	//	map_ctx_free(mapc);
+	//	aborted = 1;
+	//} TX_END
+
+
+	gettimeofday(&tv_end, 0);
+	C_getVeri(p, (void *)(0));
+
+	for (int i = 0; i < nops; i++) {
+		C_deleteMetadataVector(metadataVectorPtr[i]);
+	}
+	
+	printf("@insertion time = %lu\n", 1000000 * (tv_end.tv_sec - tv_start.tv_sec) + 
+		(tv_end.tv_usec - tv_start.tv_usec));
+	if (aborted)
+		return -1;
+
+
+	/* count the items */
+	map_foreach(mapc, D_RW(root)->map, get_keys, NULL);
+
+	for (int i = 0; i < nkeys; i++) {
+		metadataVectorPtr[i] = C_createMetadataVector();
+	}
+
+	gettimeofday(&tv_start, 0);
+	/* remove the items without outer transaction */
+	for (int i = 0; i < nkeys; ++i) {
+		metadataPtr = metadataVectorPtr[i];
+		PMTest_START;
+
+		// BUG //
+
+		if (strcmp("hashmap_atomic", type))
+			PMTest_CHECKER_START;
+
+		PMEMoid item;
+		if (i % 2 == 0)
+			item = map_remove(mapc, D_RW(root)->map, keys[i/2]);
+		else
+			item = map_remove(mapc, D_RW(root)->map, keys[nkeys-(i+1)/2]);
+			
+		// BUG //
+
+		if (strcmp("hashmap_atomic", type))
+			PMTest_CHECKER_END;
+		PMTest_END;
+		C_execVeri(p, metadataPtr);
+
+		assert(!OID_IS_NULL(item));
+		if(!OID_INSTANCEOF(item, struct store_item)) {
+			printf("%lu, %lu\n", TOID_TYPE_NUM(struct store_item), pmemobj_type_num(item));
+		}
+		assert(OID_INSTANCEOF(item, struct store_item));
+
+	}
+	
+	gettimeofday(&tv_end, 0);
+
+	C_getVeri(p, (void *)(0));
+	for (int i = 0; i < nkeys; i++) {
+		C_deleteMetadataVector(metadataVectorPtr[i]);
+	}
+
+	printf("delete time=%lu us\n", 1000000 * (tv_end.tv_sec - tv_start.tv_sec) + 
+		(tv_end.tv_usec - tv_start.tv_usec));
+	
+	C_deleteVeriInstance(p);
+
+	uint64_t old_nkeys = nkeys;
+
+	/* tree should be empty */
+	map_foreach(mapc, D_RW(root)->map, dec_keys, NULL);
+	assert(old_nkeys == nkeys);
+
+	map_ctx_free(mapc);
+	pmemobj_close(pop);
+
+	return 0;
+}
+'''.

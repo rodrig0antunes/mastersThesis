@@ -1,0 +1,54 @@
+## Example
+void write_hello_string (char *buf, char *path)
+{
+	PMEMobjpool *pop;
+	
+    pop = pmemobj_create(path, LAYOUT, PMEMOBJ_MIN_POOL, 0666);
+	
+    if (pop == NULL) 
+	{
+		perror(path);
+		exit(1);
+	}
+
+	PMEMoid root = pmemobj_root(pop, sizeof (struct my_root));
+    struct my_root *rootp = pmemobj_direct(root);
+    
+    rootp->len = strlen(buf);
+    
+    pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));
+    pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));
+	
+    printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
+	pmemobj_close(pop);	
+
+	return;
+}
+## Correction
+void write_hello_string (char *buf, char *path)
+{
+	PMEMobjpool *pop;
+	
+    pop = pmemobj_create(path, LAYOUT, PMEMOBJ_MIN_POOL, 0666);
+	
+    if (pop == NULL) 
+	{
+		perror(path);
+		exit(1);
+	}
+
+	PMEMoid root = pmemobj_root(pop, sizeof (struct my_root));
+    struct my_root *rootp = pmemobj_direct(root);
+    
+    rootp->len = strlen(buf);
+    
+    pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));
+	
+    printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
+	pmemobj_close(pop);	
+
+	return;
+}
+## Explanation
+In the correction, one of the 'pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));' calls has been removed because it is redundant.
+By removing the redundant 'pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));' call, the unnecessary overhead is eliminated, while still maintaining the correct behaviour of persisting the 'len' field, ensuring that this specific data is correctly persisted in the persistent memory pool.

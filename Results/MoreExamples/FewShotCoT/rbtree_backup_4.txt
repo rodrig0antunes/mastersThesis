@@ -1,0 +1,37 @@
+### CORRECTED PERSISTENT MEMORY PROGRAM
+''' C
+/*
+ * rbtree_map_insert_bst -- (internal) inserts a node in regular BST fashion
+ */
+static void
+rbtree_map_insert_bst(TOID(struct rbtree_map) map, TOID(struct tree_map_node) n)
+{
+	TOID(struct tree_map_node) parent = D_RO(map)->root;
+	TOID(struct tree_map_node) *dst = &RB_FIRST(map);
+	TOID(struct tree_map_node) s = D_RO(map)->sentinel;
+
+	PM_EQU(D_RW(n)->slots[RB_LEFT], s);
+	PM_EQU(D_RW(n)->slots[RB_RIGHT], s);
+
+	while (!NODE_IS_NULL(*dst)) {
+		parent = *dst;
+		dst = &D_RW(*dst)->slots[D_RO(n)->key > D_RO(*dst)->key];
+	}
+	
+	// BUG //
+	TX_BEGIN(pop) {
+		TX_ADD_DIRECT(dst);
+		TX_ADD_DIRECT(n);
+		TX_SET(n, parent, parent);
+		PM_EQU(*dst, n);
+	} TX_END
+
+}
+'''.
+
+## Explanation
+In the correction, the code is wrapped inside a transaction block using 'TX_BEGIN' and 'TX_END'. 
+Within the transaction block, the 'dst' pointer and the 'n' node are registered as direct modifications using 'TX_ADD_DIRECT'. 
+This ensures that the modifications to 'dst' and 'n' are properly recorded by the transaction system. 
+The 'TX_SET' function is used to set the parent of the 'n' node, and 'PM_EQU' is used to assign 'n' to 'dst'. 
+By including these changes within a transaction block, the modifications to the persistent memory data structure are made atomically, ensuring consistency and durability.

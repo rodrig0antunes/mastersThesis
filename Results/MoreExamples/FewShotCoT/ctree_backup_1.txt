@@ -1,0 +1,56 @@
+### CORRECTED PERSISTENT MEMORY PROGRAM
+''' C
+/*
+ * ctree_map_remove -- removes key-value pair from the map
+ */
+PMEMoid
+ctree_map_remove(PMEMobjpool *pop, TOID(struct ctree_map) map, uint64_t key)
+{
+	struct tree_map_entry *parent = NULL;
+	struct tree_map_entry *leaf = ctree_map_get_leaf(map, key, &parent);
+	if (leaf == NULL)
+		return OID_NULL;
+
+	PMEMoid ret = leaf->slot;
+
+	if (parent == NULL) { /* root */
+		
+		// BUG //
+		
+		TX_BEGIN(pop) {
+			pmemobj_tx_add_range_direct(leaf, sizeof(*leaf));
+			leaf->key = 0;
+			leaf->slot = OID_NULL;
+		} TX_END
+		
+		// BUG //
+
+	} else {
+		/*
+		 * In this situation:
+		 *	 parent
+		 *	/     \
+		 *   LEFT   RIGHT
+		 * there's no point in leaving the parent internal node
+		 * so it's swapped with the remaining node and then also freed.
+		 */
+		TX_BEGIN(pop) {
+			struct tree_map_entry *dest = parent;
+			TOID(struct tree_map_node) node;
+			TOID_ASSIGN(node, parent->slot);
+			pmemobj_tx_add_range_direct(dest, sizeof(*dest));
+			*dest = D_RW(node)->entries[
+				D_RO(node)->entries[0].key == leaf->key];
+
+			TX_FREE(node);
+		} TX_END
+	}
+
+	return ret;
+}
+'''.
+
+## Explanation
+In the correction, the lines 'PM_EQU(leaf->key, 0);' and 'PM_EQU(leaf->slot, OID_NULL);' are replaced with 'leaf->key = 0;' and 'leaf->slot = OID_NULL;' respectively. 
+The 'PM_EQU' macro is not a valid function or macro in the PMDK library. Instead, the correct way to assign values to the 'leaf->key' and 'leaf->slot' variables is to directly assign the values using the assignment operator '='. 
+By making this correction, the program correctly assigns the value 0 to 'leaf->key' and OID_NULL to 'leaf->slot' within the transaction block, ensuring that the changes are properly recorded and persisted in the persistent memory pool.

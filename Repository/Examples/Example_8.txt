@@ -1,0 +1,52 @@
+## Example
+int main(int argc, char *argv[]) {
+
+    const char *pmem_file = argv[1];
+    PMEMobjpool *pop;
+
+    if ((pop = pmemobj_create(pmem_file, POBJ_LAYOUT_NAME(example), PMEMOBJ_MIN_POOL, 0666)) == NULL) {
+        perror("pmemobj_create");
+        return 1;
+    }
+
+    PMEMoid root_oid = pmemobj_root(pop, sizeof(struct root));
+    struct root *root_ptr = pmemobj_direct(root_oid);
+
+    TX_BEGIN(pop) {
+        PM_EQU(D_RW(root_ptr->value, 42));
+    } TX_ONABORT {
+        perror("Transaction aborted");
+    } TX_END
+
+    pmemobj_close(pop);
+
+    return 0;
+}
+## Correction
+int main(int argc, char *argv[]) {
+    
+    const char *pmem_file = argv[1];
+    PMEMobjpool *pop;
+
+    if ((pop = pmemobj_create(pmem_file, POBJ_LAYOUT_NAME(example), PMEMOBJ_MIN_POOL, 0666)) == NULL) {
+        perror("pmemobj_create");
+        return 1;
+    }
+
+    PMEMoid root_oid = pmemobj_root(pop, sizeof(struct root));
+    struct root *root_ptr = pmemobj_direct(root_oid);
+
+    TX_BEGIN(pop) {
+        TX_SET(root_ptr->value, 42);
+    } TX_ONABORT {
+        perror("Transaction aborted");
+    } TX_END
+
+
+    pmemobj_close(pop);
+
+    return 0;
+}
+## Explanation
+In the correction, the correct transaction-related macro, 'TX_SET(root_ptr->value, 42);', is used. It sets the value pointed to by 'root_ptr->value' to '42' within the transaction using the 'TX_SET' macro.
+By using the correct macro, it is ensured that the value attribution is part of the transaction, guaranteeing that if the transaction aborts, the operation is rolled back. 

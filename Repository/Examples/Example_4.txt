@@ -1,0 +1,54 @@
+## Example
+void write_hello_string (char *buf, char *path)
+{
+	PMEMobjpool *pop;
+
+	pop = pmemobj_create(path, LAYOUT, PMEMOBJ_MIN_POOL, 0666);
+
+	if (pop == NULL) 
+	{
+		perror(path);
+		exit(1);
+	}
+
+	PMEMoid root = pmemobj_root(pop, sizeof (struct my_root));
+	struct my_root *rootp = pmemobj_direct(root);
+    
+    pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));
+	
+    rootp->len = strlen(buf);
+
+	printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
+	pmemobj_close(pop);	
+
+	return;
+}
+## Correction
+void write_hello_string (char *buf, char *path)
+{
+	PMEMobjpool *pop;
+	
+    pop = pmemobj_create(path, LAYOUT, PMEMOBJ_MIN_POOL, 0666);
+	
+    if (pop == NULL) 
+	{
+		perror(path);
+		exit(1);
+	}
+
+	PMEMoid root = pmemobj_root(pop, sizeof (struct my_root));
+    struct my_root *rootp = pmemobj_direct(root);
+    
+    rootp->len = strlen(buf);
+    
+    pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));
+	
+    printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
+	pmemobj_close(pop);	
+
+	return;
+}
+## Explanation
+In the correction, the order of operations is changed. In the new order, first comes the update 'rootp->len' with the length of 'buf' and then the use 'pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));' 
+to ensure that the updated value of 'rootp->len' is correctly persisted in persistent memory.
+By changing the order it is ensured that the correct persistency of data to persistent memory. This guarantees that the new value is stored safely in the persistent memory pool.

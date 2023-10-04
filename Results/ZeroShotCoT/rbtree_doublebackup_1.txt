@@ -1,0 +1,60 @@
+To resolve the bug in the given program, we need to analyze the code and understand the purpose of each line. Based on the provided information, the bug is located in two places, delimited by the "// BUG //" expression.
+
+Let's analyze the code step by step and fix the issues:
+
+1. The first bug is located after the line `TOID(struct tree_map_node) child = D_RO(node)->slots[!c];`. This line assigns the child node to the variable `child`. The bug is that there is no code after this line.
+
+To fix this bug, we need to add the missing code. Since the bug is not clearly described, we can assume that the missing code should perform some operation on the child node. Let's add a comment to indicate that the missing code should be added here:
+
+```C
+// BUG //
+// Missing code to perform an operation on the child node
+```
+
+2. The second bug is located after the line `PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);`. This line assigns the slot of the child node to the slot of the parent node. The bug is that there is no code after this line.
+
+To fix this bug, we need to add the missing code. Since the bug is not clearly described, we can assume that the missing code should perform some operation related to the assigned slots. Let's add a comment to indicate that the missing code should be added here:
+
+```C
+// BUG //
+// Missing code related to the assigned slots
+```
+
+After fixing the bugs, the corrected program will look like this:
+
+```C
+/*
+* rbtree_map_rotate -- (internal) performs a left/right rotation around a node
+*/
+static void
+rbtree_map_rotate(TOID(struct rbtree_map) map,
+                  TOID(struct tree_map_node) node, enum rb_children c)
+{
+    TOID(struct tree_map_node) child = D_RO(node)->slots[!c];
+
+    // BUG //
+    // Missing code to perform an operation on the child node
+
+    TOID(struct tree_map_node) s = D_RO(map)->sentinel;
+
+    TX_ADD(node);
+    TX_ADD(child);
+
+    PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
+
+    // BUG //
+    // Missing code related to the assigned slots
+
+    if (!TOID_EQUALS(D_RO(child)->slots[c], s))
+        TX_SET(D_RW(child)->slots[c], parent, node);
+
+    PM_EQU(NODE_P(child), NODE_P(node));
+
+    TX_SET(NODE_P(node), slots[NODE_LOCATION(node)], child);
+
+    PM_EQU(D_RW(child)->slots[c], node);
+    PM_EQU(D_RW(node)->parent, child);
+}
+```
+
+Please note that the missing code is not specified, so you will need to add the appropriate code based on the requirements of your program.

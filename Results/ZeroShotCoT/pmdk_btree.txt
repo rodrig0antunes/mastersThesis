@@ -1,0 +1,49 @@
+To resolve the bug, we need to identify the issue and fix it. The bug is located within the code block delimited by the "// BUG //" comments. 
+
+Based on the code provided, it seems that the bug is related to the use of the macro `PM_EQU`. The macro is used to assign values to persistent memory variables. However, in this case, it is being used incorrectly.
+
+To fix the bug, we need to replace the `PM_EQU` macro with the appropriate assignment statements. 
+
+Here is the corrected code:
+
+```C
+/*
+* btree_map_create_split_node -- (internal) splits a node into two
+*/
+static TOID(struct tree_map_node)
+btree_map_create_split_node(TOID(struct tree_map_node) node,
+                            struct tree_map_node_item *m)
+{
+
+    // BUG //
+
+    TOID(struct tree_map_node) right = TX_ZNEW(struct tree_map_node);
+
+    // TX_ADD(node);
+
+    int c = (BTREE_ORDER / 2);
+    *m = D_RO(node)->items[c - 1]; /* select median item */
+
+    // BUG //
+
+    D_RW(node)->items[c - 1] = EMPTY_ITEM;
+
+    /* move everything right side of median to the new node */
+    for (int i = c; i < BTREE_ORDER; ++i) {
+        if (i != BTREE_ORDER - 1) {
+            D_RW(right)->items[D_RW(right)->n] = D_RO(node)->items[i];
+            D_RW(right)->n = D_RO(right)->n + 1;
+            D_RW(node)->items[i] = EMPTY_ITEM;
+        }
+        D_RW(right)->slots[i - c] = D_RO(node)->slots[i];
+        D_RW(node)->slots[i] = TOID_NULL(struct tree_map_node);
+    }
+    D_RW(node)->n = c - 1;
+
+    return right;
+}
+```
+
+In the corrected code, the `PM_EQU` macro has been replaced with direct assignment statements. The assignment statements correctly assign values to the persistent memory variables.
+
+Please note that the code provided assumes that the `EMPTY_ITEM` variable is defined elsewhere in the program. Make sure to define it appropriately before using this corrected code.

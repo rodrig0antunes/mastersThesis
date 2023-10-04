@@ -1,0 +1,42 @@
+## Example 
+int main(int argc, char *argv[]) {
+    
+    const char *pmem_file = argv[1];
+    PMEMobjpool *pop;
+
+    if ((pop = pmemobj_create(pmem_file, POBJ_LAYOUT_NAME(example), PMEMOBJ_MIN_POOL, 0666)) == NULL) {
+        perror("pmemobj_create");
+        return 1;
+    }
+    PMEMoid root_oid = pmemobj_root(pop, sizeof(struct root));
+    struct root *root_ptr = pmemobj_direct(root_oid);
+
+    root_ptr->value1 = 42;
+    root_ptr->value2 = 84;
+    pmemobj_persist(pop, &root_ptr->value2, sizeof(int)); 
+    pmemobj_persist(pop, &root_ptr->value1, sizeof(int));
+    pmemobj_close(pop);
+    return 0;
+}
+## Correction 
+int main(int argc, char *argv[]) {
+    
+    const char *pmem_file = argv[1];
+    PMEMobjpool *pop;
+    if ((pop = pmemobj_create(pmem_file, POBJ_LAYOUT_NAME(example), PMEMOBJ_MIN_POOL, 0666)) == NULL) {
+        perror("pmemobj_create");
+        return 1;
+    }
+    PMEMoid root_oid = pmemobj_root(pop, sizeof(struct root));
+    struct root *root_ptr = pmemobj_direct(root_oid);
+    root_ptr->value1 = 42;  // Update value1 in persistent memory
+    pmemobj_persist(pop, &root_ptr->value1, sizeof(int));
+    root_ptr->value2 = 84;  // Update value2 in persistent memory
+    pmemobj_persist(pop, &root_ptr->value2, sizeof(int)); 
+    pmemobj_close(pop);
+    return 0;
+}
+## Explanation
+In the correction, the sequence of operations is corrected. It first updates 'value1', then calls 'pmemobj_persist(pop, &root_ptr->value1, sizeof(int));' right after to ensure that the change to 'value1' is durably stored in persistent memory. 
+Only after the update of 'value2' the call 'pmemobj_persist(pop, &root_ptr->value2, sizeof(int));' is made to ensure the change to 'value2' is durably stored as well.
+By making these changes, the persistent action occurs right after the respective value update on both variables, ensuring that both 'value1' and 'value2' are updated and durably stored in a consistent and reliable order, preserving data integrity in persistent memory.

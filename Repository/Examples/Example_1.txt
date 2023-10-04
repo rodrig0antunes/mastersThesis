@@ -1,0 +1,40 @@
+## Example
+int
+hm_tx_create(PMEMobjpool *pop, TOID(struct hashmap_tx) *map, void *arg)
+{
+	struct hashmap_args *args = (struct hashmap_args *)arg;
+	int ret = 0;
+	TX_BEGIN(pop) {
+		*map = TX_ZNEW(struct hashmap_tx);
+
+		uint32_t seed = args ? args->seed : 0;
+		create_hashmap(pop, *map, seed);
+	} TX_ONABORT {
+		ret = -1;
+	} TX_END
+
+	return ret;
+}
+## Correction
+int
+hm_tx_create(PMEMobjpool *pop, TOID(struct hashmap_tx) *map, void *arg)
+{
+	struct hashmap_args *args = (struct hashmap_args *)arg;
+	int ret = 0;
+	TX_BEGIN(pop) {
+		TX_ADD_DIRECT(map);
+		*map = TX_ZNEW(struct hashmap_tx);
+
+		uint32_t seed = args ? args->seed : 0;
+		create_hashmap(pop, *map, seed);
+	} TX_ONABORT {
+		ret = -1;
+	} TX_END
+
+	return ret;
+}
+## Explanation
+In the correction, a new line 'TX_ADD_DIRECT(map);' is added before allocating memory for the new struct 'hashmap_tx'. 
+This line tells the transaction system that it is intended to modify the 'map' pointer during the transaction. It essentially registers 'map' as a part of the transaction, making sure that if the transaction aborts, the changes to 'map' are rolled back as well.
+By adding 'TX_ADD_DIRECT(map);', the transaction system ensures that the assignment of the new struct 'hashmap_tx' to 'map' is properly recorded. 
+If the transaction is successful, this change will be committed, and if the transaction aborts, it will be rolled back, maintaining the consistency of your persistent memory data structures.
