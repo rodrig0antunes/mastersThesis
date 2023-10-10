@@ -17,6 +17,7 @@ Put the whole corrected program within code delimiters, as follows:
 ### EXAMPLES
 
 ## Example
+
 ''' C
 
 void write_hello_string (char *buf, char *path)
@@ -34,10 +35,14 @@ void write_hello_string (char *buf, char *path)
 	PMEMoid root = pmemobj_root(pop, sizeof (struct my_root));
 	struct my_root *rootp = pmemobj_direct(root);
     
+	// BUG //
+
     pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));
 	
     rootp->len = strlen(buf);
 
+	// BUG //
+	
 	printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
 	pmemobj_close(pop);	
 
@@ -49,6 +54,7 @@ void write_hello_string (char *buf, char *path)
 ===== assistant =====
 
 ## Correction
+
 ''' C
 
 void write_hello_string (char *buf, char *path)
@@ -66,10 +72,14 @@ void write_hello_string (char *buf, char *path)
 	PMEMoid root = pmemobj_root(pop, sizeof (struct my_root));
     struct my_root *rootp = pmemobj_direct(root);
     
+	// BUG //
+
     rootp->len = strlen(buf);
     
     pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));
 	
+	// BUG //
+
     printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
 	pmemobj_close(pop);	
 
@@ -79,6 +89,8 @@ void write_hello_string (char *buf, char *path)
 '''.
 
 ## Explanation
+In the example, the bug to repair is located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fix is put in the area of the code delimited by the two '// BUG //' expressions.
 In the correction, the order of operations is changed. In the new order, first comes the update 'rootp->len' with the length of 'buf' and then the use 'pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));' 
 to ensure that the updated value of 'rootp->len' is correctly persisted in persistent memory.
 By changing the order it is ensured that the correct persistency of data to persistent memory. This guarantees that the new value is stored safely in the persistent memory pool.
@@ -86,6 +98,7 @@ By changing the order it is ensured that the correct persistency of data to pers
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * hm_atomic_remove -- removes specified value from the hashmap,

@@ -1,61 +1,17 @@
-To resolve the bug in the given program, we need to make the following corrections:
+To resolve the bug, we need to update the code inside the `TX_BEGIN` and `TX_END` blocks. Currently, the code inside the `TX_BEGIN` and `TX_END` blocks is incorrect. 
 
-1. Remove the line `PM_EQU(leaf->slot, OID_NULL);` after the `TX_END` statement. This line is redundant and unnecessary.
+Here's the corrected code:
 
-2. Replace the line `PM_EQU(*dest, D_RW(node)->entries[\nD_RO(node)->entries[0].key == leaf->key]);` with `PM_EQU(*dest, D_RW(node)->entries[D_RO(node)->entries[0].key == leaf->key]);`. The newline character `\n` in the original line is causing a syntax error.
-
-Here is the corrected version of the program:
-
-```C
-/*
-* ctree_map_remove -- removes key-value pair from the map
-*/
-PMEMoid
-ctree_map_remove(PMEMobjpool *pop, TOID(struct ctree_map) map, uint64_t key)
-{
-    struct tree_map_entry *parent = NULL;
-    struct tree_map_entry *leaf = ctree_map_get_leaf(map, key, &parent);
-    if (leaf == NULL)
-        return OID_NULL;
-
-    PMEMoid ret = leaf->slot;
-
-    if (parent == NULL) { /* root */
-
-        // BUG //
-
-        TX_BEGIN(pop) {
-            pmemobj_tx_add_range_direct(leaf, sizeof(*leaf));
-            PM_EQU(leaf->key, 0);
-            // PM_EQU(leaf->slot, OID_NULL);
-        } TX_END
-
-        PM_EQU(leaf->slot, OID_NULL);
-
-        // BUG //
-
-    } else {
-        /*
-        * In this situation:
-        *    parent
-        *   /     \
-        * LEFT   RIGHT
-        * there's no point in leaving the parent internal node
-        * so it's swapped with the remaining node and then also freed.
-        */
-        TX_BEGIN(pop) {
-            struct tree_map_entry *dest = parent;
-            TOID(struct tree_map_node) node;
-            TOID_ASSIGN(node, parent->slot);
-            pmemobj_tx_add_range_direct(dest, sizeof(*dest));
-            PM_EQU(*dest, D_RW(node)->entries[D_RO(node)->entries[0].key == leaf->key]);
-
-            TX_FREE(node);
-        } TX_END
-    }
-
-    return ret;
+``` C
+if (parent == NULL) { /* root */
+    TX_BEGIN(pop) {
+        pmemobj_tx_add_range_direct(leaf, sizeof(*leaf));
+        leaf->key = 0;
+    } TX_END
+    leaf->slot = OID_NULL;
 }
 ```
 
-Please note that the code within the `TX_BEGIN` and `TX_END` blocks should be adjusted according to the specific requirements of your program.
+In the corrected code, we are using the correct syntax to assign a value to `leaf->key` and `leaf->slot`. We are also correctly adding the range of `leaf` to the transaction using `pmemobj_tx_add_range_direct`.
+
+Now, the bug has been fixed.

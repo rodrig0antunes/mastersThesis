@@ -15,6 +15,7 @@ Put the whole corrected program within code delimiters, as follows:
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * btree_map_find_dest_node -- (internal) finds a place to insert the new key at

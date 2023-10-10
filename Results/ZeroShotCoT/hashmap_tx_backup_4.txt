@@ -1,10 +1,18 @@
-To resolve the bug, we need to add the missing `TX_ADD_FIELD` statement for the `count` field of the `hashmap` object. 
+To resolve the bug, we need to ensure that the modifications made to the persistent memory are correctly added to the transaction. 
 
-Additionally, we need to move the `TX_ADD_FIELD` statement for the `bucket[h]` field outside of the `if` statement, so that it is always executed.
+In the given code, the bug is located in the area delimited by "// BUG //". 
 
-Here's the corrected code:
+To fix the bug, we need to add the following code inside the "// BUG //" area:
 
-``` C
+```C
+TX_ADD_FIELD(D_RW(buckets)->bucket[h], var);
+```
+
+This code will add the modification of the `bucket[h]` field to the transaction.
+
+The corrected code is as follows:
+
+```C
 /*
  * hm_tx_remove -- removes specified value from the hashmap,
  * returns:
@@ -33,7 +41,8 @@ hm_tx_remove(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint64_t key)
 			TX_ADD_FIELD(D_RO(hashmap)->buckets, bucket[h]);
 		else
 			TX_ADD_FIELD(prev, next);
-		TX_ADD_FIELD(hashmap, count);
+
+		TX_ADD_FIELD(D_RW(buckets)->bucket[h], var);
 
 		if (TOID_IS_NULL(prev))
 			PM_EQU(D_RW(buckets)->bucket[h], D_RO(var)->next);
@@ -54,4 +63,4 @@ hm_tx_remove(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint64_t key)
 }
 ```
 
-This should resolve the bug and make the program work as expected.
+Now the bug has been fixed and the modifications to the persistent memory will be correctly added to the transaction.

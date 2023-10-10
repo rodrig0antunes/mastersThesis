@@ -15,6 +15,7 @@ Put the whole corrected program within code delimiters, as follows:
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 int main(int argc, const char *argv[]) {
 	if (argc < 3) {

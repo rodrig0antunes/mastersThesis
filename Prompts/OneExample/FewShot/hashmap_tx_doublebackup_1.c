@@ -17,6 +17,7 @@ Put the whole corrected program within code delimiters, as follows:
 ### EXAMPLES
 
 ## Example
+
 ''' C
 
 static void
@@ -35,10 +36,15 @@ create_hashmap(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint32_t seed)
 		} while (D_RW(hashmap)->hash_fun_a == 0);
 		D_RW(hashmap)->hash_fun_b = (uint32_t)rand();
 		D_RW(hashmap)->hash_fun_p = HASH_FUNC_COEFF_P;
+		
+		// BUG //
 
 		D_RW(hashmap)->buckets = TX_ZALLOC(struct buckets, sz);
 		D_RW(D_RW(hashmap)->buckets)->nbuckets = len;
         TX_ADD(hashmap);
+		
+		// BUG //
+
 	} TX_ONABORT {
 		fprintf(stderr, "%s: transaction aborted: %s\n", __func__,
 			pmemobj_errormsg());
@@ -51,6 +57,7 @@ create_hashmap(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint32_t seed)
 ===== assistant =====
 
 ## Correction
+
 ''' C
 
     static void
@@ -69,9 +76,14 @@ create_hashmap(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint32_t seed)
 		} while (D_RW(hashmap)->hash_fun_a == 0);
 		D_RW(hashmap)->hash_fun_b = (uint32_t)rand();
 		D_RW(hashmap)->hash_fun_p = HASH_FUNC_COEFF_P;
-
+		
+		// BUG //
+		
 		D_RW(hashmap)->buckets = TX_ZALLOC(struct buckets, sz);
 		D_RW(D_RW(hashmap)->buckets)->nbuckets = len;
+		
+		// BUG //
+
 	} TX_ONABORT {
 		fprintf(stderr, "%s: transaction aborted: %s\n", __func__,
 			pmemobj_errormsg());
@@ -84,6 +96,7 @@ create_hashmap(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint32_t seed)
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * hm_tx_insert -- inserts specified value into the hashmap,

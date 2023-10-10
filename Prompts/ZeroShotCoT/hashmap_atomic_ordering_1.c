@@ -15,6 +15,7 @@ Put the whole corrected program within code delimiters, as follows:
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * hm_atomic_insert -- inserts specified value into the hashmap,

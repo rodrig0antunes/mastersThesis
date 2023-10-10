@@ -15,6 +15,7 @@ Put the whole corrected program within code delimiters, as follows:
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * btree_map_create_split_node -- (internal) splits a node into two

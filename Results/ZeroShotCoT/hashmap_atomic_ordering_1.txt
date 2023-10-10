@@ -1,74 +1,76 @@
-The bug in the program is related to the use of the `PM_EQU` macro. The `PM_EQU` macro is not a standard function or macro in the PMDK library. It seems to be a custom macro defined by the user, but it is not provided in the code snippet.
+To resolve the bug, we need to fix the code within the "// BUG //" section. 
 
-To fix this bug, we need to replace the `PM_EQU` macro with the appropriate function or macro from the PMDK library that performs the desired operation.
+Looking at the code, it seems that the bug is related to the function `PMTest_isPersistedBefore()`. This function is not a standard function from the PMDK library, so it is likely a custom function implemented by the user or a third-party library.
 
-Since the purpose of the `PM_EQU` macro is to assign a value to a persistent memory variable, we can replace it with the `pmemobj_memcpy_persist` function. This function copies the specified data to the persistent memory and ensures that the data is persisted before returning.
+To fix the bug, we need to replace the call to `PMTest_isPersistedBefore()` with the appropriate code that ensures the persistence of the data.
 
-Here is the corrected code:
+Here's the corrected code:
 
-```C
+``` C
+/*
+ * hm_atomic_insert -- inserts specified value into the hashmap,
+ * returns:
+ * - 0 if successful,
+ * - 1 if value already existed,
+ * - -1 if something bad happened
+ */
 int
 hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
-                 uint64_t key, PMEMoid value)
+		uint64_t key, PMEMoid value)
 {
-    TOID(struct buckets) buckets = D_RO(hashmap)->buckets;
-    TOID(struct entry) var;
+	TOID(struct buckets) buckets = D_RO(hashmap)->buckets;
+	TOID(struct entry) var;
 
-    uint64_t h = hash(&hashmap, &buckets, key);
-    int num = 0;
+	uint64_t h = hash(&hashmap, &buckets, key);
+	int num = 0;
 
-    POBJ_LIST_FOREACH(var, &D_RO(buckets)->bucket[h], list) {
-        if (D_RO(var)->key == key)
-            return 1;
-        num++;
-    }
+	POBJ_LIST_FOREACH(var, &D_RO(buckets)->bucket[h], list) {
+		if (D_RO(var)->key == key)
+			return 1;
+		num++;
+	}
 
-    // BUG //
+	PM_EQU(D_RW(hashmap)->count_dirty, 1);
 
-    struct entry_args args = {
-        .key = key,
-        .value = value,
-    };
-    PMEMoid oid = POBJ_LIST_INSERT_NEW_HEAD(pop,
-                                            &D_RW(buckets)->bucket[h],
-                                            list, sizeof(struct entry),
-                                            create_entry, &args);
-    if (OID_IS_NULL(oid)) {
-        fprintf(stderr, "failed to allocate entry: %s\n",
-                pmemobj_errormsg());
-        return -1;
-    }
+	struct entry_args args = {
+		.key = key,
+		.value = value,
+	};
+	PMEMoid oid = POBJ_LIST_INSERT_NEW_HEAD(pop,
+			&D_RW(buckets)->bucket[h],
+			list, sizeof(struct entry), create_entry, &args);
+	if (OID_IS_NULL(oid)) {
+		fprintf(stderr, "failed to allocate entry: %s\n",
+			pmemobj_errormsg());
+		return -1;
+	}
 
-    // BUG //
+	PM_EQU(D_RW(hashmap)->count, (D_RW(hashmap)->count + 1));
 
-    D_RW(hashmap)->count++;
-    pmemobj_persist(pop, &D_RW(hashmap)->count,
-                    sizeof(D_RW(hashmap)->count));
+	pmemobj_persist(pop, &D_RW(hashmap)->count,
+			sizeof(D_RW(hashmap)->count));
+	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
+			sizeof(D_RW(hashmap)->count_dirty));
 
-    D_RW(hashmap)->count_dirty = 1;
+	PM_EQU(D_RW(hashmap)->count_dirty, 0);
+	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
+			sizeof(D_RW(hashmap)->count_dirty));
 
-    struct entry *entry_ptr = D_RW(oid);
-    entry_ptr->key = key;
-    entry_ptr->value = value;
-    pmemobj_persist(pop, entry_ptr, sizeof(struct entry));
+	num++;
+	if (num > MAX_HASHSET_THRESHOLD ||
+			(num > MIN_HASHSET_THRESHOLD &&
+			D_RO(hashmap)->count > 2 * D_RO(buckets)->nbuckets))
+		hm_atomic_rebuild(pop, hashmap, D_RW(buckets)->nbuckets * 2);
 
-    D_RW(hashmap)->count_dirty = 0;
-    pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
-                    sizeof(D_RW(hashmap)->count_dirty));
+	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
+			sizeof(D_RW(hashmap)->count_dirty));
+	pmemobj_persist(pop, &D_RW(hashmap)->count,
+			sizeof(D_RW(hashmap)->count));
 
-    num++;
-    if (num > MAX_HASHSET_THRESHOLD ||
-        (num > MIN_HASHSET_THRESHOLD &&
-         D_RO(hashmap)->count > 2 * D_RO(buckets)->nbuckets))
-        hm_atomic_rebuild(pop, hashmap, D_RW(buckets)->nbuckets * 2);
-
-    pmemobj_persist(pop, &D_RW(hashmap)->count,
-                    sizeof(D_RW(hashmap)->count));
-    pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
-                    sizeof(D_RW(hashmap)->count_dirty));
-
-    return 0;
+	return 0;
 }
 ```
 
-In the corrected code, I have replaced the `PM_EQU` macro with the appropriate function calls to `pmemobj_persist` and `pmemobj_memcpy_persist` to ensure the persistence of the modified data.
+In the corrected code, I have removed the calls to `PMTest_isPersistedBefore()` and added calls to `pmemobj_persist()` to ensure the persistence of the data before and after modifying the `count_dirty` and `count` fields.
+
+Please note that the exact fix may depend on the specific requirements of your application and the behavior of the custom `PMTest_isPersistedBefore()` function. This fix assumes that the goal is to ensure the persistence of the `count_dirty` and `count` fields.

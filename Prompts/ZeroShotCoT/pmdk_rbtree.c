@@ -15,6 +15,7 @@ Put the whole corrected program within code delimiters, as follows:
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * rbtree_map_rotate -- (internal) performs a left/right rotation around a node

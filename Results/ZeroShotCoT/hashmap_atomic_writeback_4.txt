@@ -1,73 +1,13 @@
-To resolve the bug, we need to ensure that the update to the `count` field of the `hashmap` structure is persisted correctly. Currently, the `pmemobj_persist` function call is commented out. We need to uncomment it and place it after the update to `count`.
+To resolve the bug, we need to fix the code inside the delimited area. 
 
-Here's the corrected code:
+Looking at the code, it seems that the bug is related to updating the `count` field of the `hashmap` struct. The code is trying to increment the `count` field by 1, but it is not done correctly.
+
+To fix the bug, we need to use the `PM_EQU` macro to update the `count` field. The correct code should be:
 
 ``` C
-/*
- * hm_atomic_insert -- inserts specified value into the hashmap,
- * returns:
- * - 0 if successful,
- * - 1 if value already existed,
- * - -1 if something bad happened
- */
-int
-hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
-		uint64_t key, PMEMoid value)
-{
-	TOID(struct buckets) buckets = D_RO(hashmap)->buckets;
-	TOID(struct entry) var;
-
-	uint64_t h = hash(&hashmap, &buckets, key);
-	int num = 0;
-
-	POBJ_LIST_FOREACH(var, &D_RO(buckets)->bucket[h], list) {
-		if (D_RO(var)->key == key)
-			return 1;
-		num++;
-	}
-
-	PM_EQU(D_RW(hashmap)->count_dirty, 1);
-	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
-			sizeof(D_RW(hashmap)->count_dirty));
-
-	struct entry_args args = {
-		.key = key,
-		.value = value,
-	};
-	PMEMoid oid = POBJ_LIST_INSERT_NEW_HEAD(pop,
-			&D_RW(buckets)->bucket[h],
-			list, sizeof(struct entry), create_entry, &args);
-	if (OID_IS_NULL(oid)) {
-		fprintf(stderr, "failed to allocate entry: %s\n",
-			pmemobj_errormsg());
-		return -1;
-	}
-
-	// BUG //
-	PM_EQU(D_RW(hashmap)->count, (D_RW(hashmap)->count + 1));
-	pmemobj_persist(pop, &D_RW(hashmap)->count,
-			sizeof(D_RW(hashmap)->count));
-	// BUG //
-
-	PMTest_isPersistedBefore(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty), &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));
-
-	PM_EQU(D_RW(hashmap)->count_dirty, 0);
-	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
-			sizeof(D_RW(hashmap)->count_dirty));
-
-	PMTest_isPersistedBefore(&D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count), &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));
-
-	num++;
-	if (num > MAX_HASHSET_THRESHOLD ||
-			(num > MIN_HASHSET_THRESHOLD &&
-			D_RO(hashmap)->count > 2 * D_RO(buckets)->nbuckets))
-		hm_atomic_rebuild(pop, hashmap, D_RW(buckets)->nbuckets * 2);
-
-	PMTest_isPersistent(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));
-	PMTest_isPersistent(&D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));
-
-	return 0;
-}
+PM_EQU(D_RW(hashmap)->count, (D_RW(hashmap)->count + 1));
 ```
 
-Now the update to `count` will be persisted correctly, ensuring the consistency of the data in persistent memory.
+This will correctly increment the `count` field by 1.
+
+Now, let's put the whole corrected program together.

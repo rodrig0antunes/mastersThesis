@@ -1,87 +1,120 @@
-To resolve the bug, we need to make the following corrections:
+To resolve the bug, we need to fix the code within the "// BUG //" section. Let's analyze the code and make the necessary corrections.
 
-1. Replace the line `PMTest_assign(&(D_RW(e)->key), sizeof(struct entry));` with `PMEMoid_assign(&(D_RW(e)->key), value);`. This will correctly assign the value to the `key` field of the new entry.
+1. The first bug is related to the line:
+   ```C
+   PMTest_assign(&(D_RW(e)->key), sizeof(struct entry));
+   ```
+   This line seems to be incorrect and unnecessary. We can remove it.
 
-2. Replace the line `(D_RW(e)->key) = (key);` with `D_RW(e)->key = key;`. This will correctly assign the `key` value to the `key` field of the new entry.
+2. The second bug is related to the line:
+   ```C
+   (D_RW(e)->key) = (key);
+   ```
+   This line should be corrected to:
+   ```C
+   D_RW(e)->key = key;
+   ```
 
-3. Replace the line `(D_RW(e)->value) = (value);` with `D_RW(e)->value = value;`. This will correctly assign the `value` value to the `value` field of the new entry.
+3. The third bug is related to the line:
+   ```C
+   (D_RW(e)->value) = (value);
+   ```
+   This line should be corrected to:
+   ```C
+   D_RW(e)->value = value;
+   ```
 
-4. Replace the line `(D_RW(e)->next) = (D_RO(buckets)->bucket[h]);` with `D_RW(e)->next = D_RO(buckets)->bucket[h];`. This will correctly assign the `bucket[h]` value to the `next` field of the new entry.
+4. The fourth bug is related to the line:
+   ```C
+   (D_RW(e)->next) = (D_RO(buckets)->bucket[h]);
+   ```
+   This line should be corrected to:
+   ```C
+   D_RW(e)->next = D_RO(buckets)->bucket[h];
+   ```
 
-5. Replace the line `PM_EQU((D_RW(buckets)->bucket[h]), (e));` with `D_RW(buckets)->bucket[h] = e;`. This will correctly assign the `e` value to the `bucket[h]` field.
+5. The fifth bug is related to the line:
+   ```C
+   PM_EQU((D_RW(buckets)->bucket[h]), (e));
+   ```
+   This line should be corrected to:
+   ```C
+   D_RW(buckets)->bucket[h] = e;
+   ```
 
-6. Replace the line `PM_EQU((D_RW(hashmap)->count), (D_RW(hashmap)->count+1));` with `D_RW(hashmap)->count = D_RO(hashmap)->count + 1;`. This will correctly increment the `count` field of the hashmap.
+6. The sixth bug is related to the line:
+   ```C
+   PM_EQU((D_RW(hashmap)->count), (D_RW(hashmap)->count+1));
+   ```
+   This line should be corrected to:
+   ```C
+   D_RW(hashmap)->count = D_RW(hashmap)->count + 1;
+   ```
 
 Now, let's put all the corrections together in the code:
 
 ``` C
-/* 
-* hm_tx_insert -- inserts specified value into the hashmap,
-* returns:
-* - 0 if successful,
-* - 1 if value already existed,
-* - -1 if something bad happened
-*/
+/*
+ * hm_tx_insert -- inserts specified value into the hashmap,
+ * returns:
+ * - 0 if successful,
+ * - 1 if value already existed,
+ * - -1 if something bad happened
+ */
 int
 hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
-             uint64_t key, PMEMoid value)
+	uint64_t key, PMEMoid value)
 {
-    TOID(struct buckets) buckets = D_RO(hashmap)->buckets;
-    TOID(struct entry) var;
+	TOID(struct buckets) buckets = D_RO(hashmap)->buckets;
+	TOID(struct entry) var;
 
-    uint64_t h = hash(&hashmap, &buckets, key);
-    int num = 0;
+	uint64_t h = hash(&hashmap, &buckets, key);
+	int num = 0;
 
-    for (var = D_RO(buckets)->bucket[h];
-         !TOID_IS_NULL(var);
-         var = D_RO(var)->next) {
-        if (D_RO(var)->key == key)
-            return 1;
-        num++;
-    }
+	for (var = D_RO(buckets)->bucket[h];
+			!TOID_IS_NULL(var);
+			var = D_RO(var)->next) {
+		if (D_RO(var)->key == key)
+			return 1;
+		num++;
+	}
 
-    int ret = 0;
-    TX_BEGIN(pop) {
+	int ret = 0;
+	TX_BEGIN(pop) {
 
-        // BUG //
+		// BUG //
+			
+		TX_ADD_FIELD(D_RO(hashmap)->buckets, bucket[h]);
+		TX_ADD_FIELD(hashmap, count);
+		TX_ADD_FIELD(hashmap, count);
+		
+		TOID(struct entry) e = TX_NEW(struct entry);
+			
+		// BUG //
+		
+		D_RW(e)->key = key;
+		D_RW(e)->value = value;
+		D_RW(e)->next = D_RO(buckets)->bucket[h];
+		
+		D_RW(buckets)->bucket[h] = e;
+		D_RW(hashmap)->count = D_RW(hashmap)->count + 1;
+		num++;
+	} TX_ONABORT {
+		fprintf(stderr, "transaction aborted: %s\n",
+			pmemobj_errormsg());
+		ret = -1;
+	} TX_END
 
-        TX_ADD_FIELD(D_RO(hashmap)->buckets, bucket[h]);
-        //TX_ADD_FIELD(buckets, bucket[h]);
-        TX_ADD_FIELD(hashmap, count);
-        TX_ADD_FIELD(hashmap, count);
+	if (ret)
+		return ret;
 
-        TOID(struct entry) e = TX_NEW(struct entry);
+	if (num > MAX_HASHSET_THRESHOLD ||
+			(num > MIN_HASHSET_THRESHOLD &&
+			D_RO(hashmap)->count > 2 * D_RO(buckets)->nbuckets))
+		hm_tx_rebuild(pop, hashmap, D_RO(buckets)->nbuckets * 2);
 
-        // BUG //
-
-        PMEMoid_assign(&(D_RW(e)->key), value);
-        D_RW(e)->key = key;
-        D_RW(e)->value = value;
-        D_RW(e)->next = D_RO(buckets)->bucket[h];
-        /*
-        PM_EQU((D_RW(e)->key), (key));
-        PM_EQU((D_RW(e)->value), (value));
-        PM_EQU((D_RW(e)->next), (D_RO(buckets)->bucket[h]));
-        */
-        D_RW(buckets)->bucket[h] = e;
-        D_RW(hashmap)->count = D_RO(hashmap)->count + 1;
-        num++;
-    } TX_ONABORT {
-        fprintf(stderr, "transaction aborted: %s\n",
-                pmemobj_errormsg());
-        ret = -1;
-    } TX_END
-
-    if (ret)
-        return ret;
-
-    if (num > MAX_HASHSET_THRESHOLD ||
-        (num > MIN_HASHSET_THRESHOLD &&
-         D_RO(hashmap)->count > 2 * D_RO(buckets)->nbuckets))
-        hm_tx_rebuild(pop, hashmap, D_RO(buckets)->nbuckets * 2);
-
-    return 0;
+	return 0;
 }
 ```
 
-Now the bug should be resolved and the program should work as expected.
+This should resolve the bugs in the code.

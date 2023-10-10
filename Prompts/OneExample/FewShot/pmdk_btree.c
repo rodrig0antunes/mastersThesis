@@ -17,6 +17,7 @@ Put the whole corrected program within code delimiters, as follows:
 ### EXAMPLES
 
 ## Example
+
 ''' C
 
 int main(int argc, char *argv[]) {
@@ -38,10 +39,14 @@ int main(int argc, char *argv[]) {
 
     int *value_ptr = pmemobj_direct(value);
 
+    // BUG //
+
     if (*value_ptr == 42) {
         TX_ADD(value);
         TX_ADD(value);
     }
+
+    // BUG //
 
     pmemobj_close(pop);
 
@@ -53,6 +58,7 @@ int main(int argc, char *argv[]) {
 ===== assistant =====
 
 ## Correction
+
 ''' C
  
 int main(int argc, char *argv[]) {
@@ -74,9 +80,13 @@ int main(int argc, char *argv[]) {
 
     int *value_ptr = pmemobj_direct(value);
 
+    // BUG //
+
     if (*value_ptr == 42) {
         TX_ADD(value);
     }
+
+    // BUG //
 
     pmemobj_close(pop);
 
@@ -88,6 +98,7 @@ int main(int argc, char *argv[]) {
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * btree_map_create_split_node -- (internal) splits a node into two

@@ -17,6 +17,7 @@ Put the whole corrected program within code delimiters, as follows:
 ### EXAMPLES
 
 ## Example 1
+
 ''' C
 
 void write_hello_string (char *buf, char *path)
@@ -34,11 +35,15 @@ void write_hello_string (char *buf, char *path)
 	PMEMoid root = pmemobj_root(pop, sizeof (struct my_root));
     struct my_root *rootp = pmemobj_direct(root);
     
+	// BUG //
+
     rootp->len = strlen(buf);
     
     pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));
     pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));
 	
+	// BUG //
+
     printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
 	pmemobj_close(pop);	
 
@@ -50,6 +55,7 @@ void write_hello_string (char *buf, char *path)
 ===== assistant =====
 
 ## Correction 1
+
 ''' C
 
 void write_hello_string (char *buf, char *path)
@@ -67,11 +73,15 @@ void write_hello_string (char *buf, char *path)
 	PMEMoid root = pmemobj_root(pop, sizeof (struct my_root));
     struct my_root *rootp = pmemobj_direct(root);
     
+	// BUG //
+	
     rootp->len = strlen(buf);
-    
+
     pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));
 	
-    printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
+	// BUG //
+    
+	printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
 	pmemobj_close(pop);	
 
 	return;
@@ -82,6 +92,7 @@ void write_hello_string (char *buf, char *path)
 ===== user =====
 
 ## Example 2
+
 ''' C
 
 int main(int argc, char *argv[]) {
@@ -103,10 +114,14 @@ int main(int argc, char *argv[]) {
 
     int *value_ptr = pmemobj_direct(value);
 
+    // BUG //
+
     if (*value_ptr == 42) {
         TX_ADD(value);
         TX_ADD(value);
     }
+
+    // BUG //
 
     pmemobj_close(pop);
 
@@ -118,6 +133,7 @@ int main(int argc, char *argv[]) {
 ===== assistant =====
 
 ## Correction 2
+
 ''' C
  
 int main(int argc, char *argv[]) {
@@ -139,9 +155,13 @@ int main(int argc, char *argv[]) {
 
     int *value_ptr = pmemobj_direct(value);
 
+    // BUG //
+
     if (*value_ptr == 42) {
         TX_ADD(value);
     }
+
+    // BUG //
 
     pmemobj_close(pop);
 
@@ -153,6 +173,7 @@ int main(int argc, char *argv[]) {
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * hm_atomic_remove -- removes specified value from the hashmap,

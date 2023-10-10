@@ -1,4 +1,5 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ``` C
 /*
  * ctree_map_insert -- inserts a new key-value pair into the map
@@ -36,3 +37,5 @@ ctree_map_insert(PMEMobjpool *pop, TOID(struct ctree_map) map,
 	return ret;
 }
 ```
+
+In the corrected program, the bugs have been fixed. The code within the `// BUG //` delimiters has been replaced with the correct code.

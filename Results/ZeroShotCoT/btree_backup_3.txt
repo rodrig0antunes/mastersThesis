@@ -1,45 +1,44 @@
-To resolve the bug, we need to identify the issue and make the necessary corrections. Let's analyze the code and identify the problem:
+To resolve the bug, we need to fix the code inside the delimited area. 
 
-1. The first bug is located after the comment "// BUG //". It seems that the code is missing a statement or a function call.
+Looking at the code, it seems that the bug is related to the use of the `PM_EQU` macro. The `PM_EQU` macro is not a standard function or macro in the PMDK library. It seems that the user intended to use the `PMEMobj_memcpy_persist` function to copy the data from one persistent memory location to another.
 
-2. The second bug is also located after the comment "// BUG //". It seems that the code is missing a statement or a function call.
+To fix the bug, we need to replace the `PM_EQU` macro with the `PMEMobj_memcpy_persist` function. Here's the corrected code:
 
-To fix these bugs, we need to add the missing statements or function calls. Let's correct the code:
-
-```C
+``` C
 /*
-* btree_map_rotate_right -- (internal) takes one element from right sibling
-*/
+ * btree_map_rotate_right -- (internal) takes one element from right sibling
+ */
 static void
 btree_map_rotate_right(TOID(struct tree_map_node) rsb,
-TOID(struct tree_map_node) node,
-TOID(struct tree_map_node) parent, int p)
+	TOID(struct tree_map_node) node,
+	TOID(struct tree_map_node) parent, int p)
 {
-    /* move the separator from parent to the deficient node */
-    struct tree_map_node_item sep = D_RO(parent)->items[p];
-    btree_map_insert_item(node, D_RO(node)->n, sep);
+	/* move the separator from parent to the deficient node */
+	struct tree_map_node_item sep = D_RO(parent)->items[p];
+	btree_map_insert_item(node, D_RO(node)->n, sep);
+		
+	// BUG //
+	
+	/* the first element of the right sibling is the new separator */
+	PMEMobj_memcpy_persist(pop, &D_RW(parent)->items[p], &D_RO(rsb)->items[0], sizeof(struct tree_map_node_item));
+		
+	// BUG //
 
-    // BUG //
+	/* the nodes are not necessarily leafs, so copy also the slot */
+	TX_ADD_FIELD(node, slots[D_RO(node)->n]);
+	PMEMobj_memcpy_persist(pop, &D_RW(node)->slots[D_RO(node)->n], &D_RO(rsb)->slots[0], sizeof(TOID(struct tree_map_node)));
 
-    /* the first element of the right sibling is the new separator */
-    TX_ADD_FIELD(parent, items[p]);
-    PM_EQU(D_RW(parent)->items[p], D_RO(rsb)->items[0]);
+	TX_ADD(rsb);
+	D_RW(rsb)->n = D_RO(rsb)->n - 1; /* it loses one element, but still > min */
 
-    // BUG //
-
-    /* the nodes are not necessarily leafs, so copy also the slot */
-    TX_ADD_FIELD(node, slots[D_RO(node)->n]);
-    PM_EQU(D_RW(node)->slots[D_RO(node)->n], D_RO(rsb)->slots[0]);
-
-    TX_ADD(rsb);
-    PM_EQU(D_RW(rsb)->n, D_RO(rsb)->n - 1); /* it loses one element, but still > min */
-
-    /* move all existing elements back by one array slot */
-    PM_MEMMOVE(D_RW(rsb)->items, D_RO(rsb)->items + 1,
-    sizeof(struct tree_map_node_item) * (D_RO(rsb)->n));
-    PM_MEMMOVE(D_RW(rsb)->slots, D_RO(rsb)->slots + 1,
-    sizeof(TOID(struct tree_map_node)) * (D_RO(rsb)->n + 1));
+	/* move all existing elements back by one array slot */
+	PMEMobj_memmove_persist(pop, D_RW(rsb)->items, D_RO(rsb)->items + 1,
+		sizeof(struct tree_map_node_item) * (D_RO(rsb)->n));
+	PMEMobj_memmove_persist(pop, D_RW(rsb)->slots, D_RO(rsb)->slots + 1,
+		sizeof(TOID(struct tree_map_node)) * (D_RO(rsb)->n + 1));
 }
 ```
 
-This corrected code should resolve the bugs and make the program work as expected.
+In the corrected code, we have replaced the `PM_EQU` macro with the `PMEMobj_memcpy_persist` function to copy the data from the right sibling to the parent node. We have also replaced the `PM_MEMMOVE` macro with the `PMEMobj_memmove_persist` function to move the existing elements in the right sibling.
+
+Note that we assume that the `pop` variable is a valid `PMEMobjpool` object that is accessible in the current scope. If it is not, you may need to adjust the code accordingly.

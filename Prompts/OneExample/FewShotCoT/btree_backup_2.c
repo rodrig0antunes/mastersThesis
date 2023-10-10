@@ -17,15 +17,20 @@ Put the whole corrected program within code delimiters, as follows:
 ### EXAMPLES
 
 ## Example
+
 ''' C
 
 PMEMoid retoid = D_RO(var)->value;
 	TX_BEGIN(pop) {
+		
+		// BUG //
+		
 		if (TOID_IS_NULL(prev))
 			TX_ADD_FIELD(D_RO(hashmap)->buckets, bucket[h]);
-		else
-            // TX_ADD_FIELD(prev, next);
+
 		TX_ADD_FIELD(hashmap, count);
+
+		// BUG //
 
 		if (TOID_IS_NULL(prev))
 			D_RW(buckets)->bucket[h] = D_RO(var)->next;
@@ -41,15 +46,21 @@ PMEMoid retoid = D_RO(var)->value;
 ===== assistant =====
 
 ## Correction
+
 ''' C
 
 PMEMoid retoid = D_RO(var)->value;
 	TX_BEGIN(pop) {
+
+		// BUG //
+
 		if (TOID_IS_NULL(prev))
 			TX_ADD_FIELD(D_RO(hashmap)->buckets, bucket[h]);
 		else
 			TX_ADD_FIELD(prev, next);
 		TX_ADD_FIELD(hashmap, count);
+
+		// BUG //
 
 		if (TOID_IS_NULL(prev))
 			D_RW(buckets)->bucket[h] = D_RO(var)->next;
@@ -62,12 +73,15 @@ PMEMoid retoid = D_RO(var)->value;
 '''.
 
 ## Explanation
-In the correction, the commented line is removed, and 'TX_ADD_FIELD(prev, next);' is now included inside the conditional block. 'TX_ADD_FIELD(prev, next);' registers the 'prev'->'next' field as part of the transaction, ensuring that if 'prev' is not null, the update to 'prev'->'next' is properly included in the transaction, maintaining data consistency.	
+In the example, the bug to repair is located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fix is put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, it is added an 'else' to the conditional block and 'TX_ADD_FIELD(prev, next);' is added and included inside. 'TX_ADD_FIELD(prev, next);' registers the 'prev'->'next' field as part of the transaction, ensuring that if 'prev' is not null, the update to 'prev'->'next' is properly included in the transaction, maintaining data consistency.	
 This correction helps maintain the integrity of the data when using transactional memory updates.
 
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * btree_map_find_dest_node -- (internal) finds a place to insert the new key at

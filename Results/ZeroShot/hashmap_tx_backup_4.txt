@@ -26,10 +26,9 @@ hm_tx_remove(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint64_t key)
 
 	TX_BEGIN(pop) {
 		if (TOID_IS_NULL(prev))
-			TX_ADD_FIELD(D_RW(buckets)->bucket[h], next);
+			TX_ADD_FIELD(D_RW(buckets)->bucket[h], next); // BUG //
 		else
-			TX_ADD_FIELD(D_RW(prev)->next, next);
-		TX_ADD_FIELD(D_RW(hashmap)->count, count);
+			TX_ADD_FIELD(D_RW(prev), next); // BUG //
 
 		if (TOID_IS_NULL(prev))
 			PM_EQU(D_RW(buckets)->bucket[h], D_RO(var)->next);
@@ -50,8 +49,4 @@ hm_tx_remove(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint64_t key)
 }
 ```
 
-In the corrected program, the bugs have been fixed as follows:
-
-1. The first bug is fixed by adding the correct field to the transaction using `TX_ADD_FIELD(D_RW(buckets)->bucket[h], next);` instead of `TX_ADD_FIELD(D_RO(hashmap)->buckets, bucket[h]);`.
-
-2. The second bug is fixed by adding the correct field to the transaction using `TX_ADD_FIELD(D_RW(hashmap)->count, count);` instead of commenting out the line `// TX_ADD_FIELD(hashmap, count);`.
+In the corrected program, the bugs have been fixed by adding the correct fields to the transaction using the `TX_ADD_FIELD` macro. The first bug is fixed by adding `TX_ADD_FIELD(D_RW(buckets)->bucket[h], next);` and the second bug is fixed by adding `TX_ADD_FIELD(D_RW(prev), next);`.

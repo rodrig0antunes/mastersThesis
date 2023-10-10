@@ -17,6 +17,7 @@ Put the whole corrected program within code delimiters, as follows:
 ### EXAMPLES
 
 ## Example 1
+
 ''' C
 
 static void
@@ -35,10 +36,15 @@ create_hashmap(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint32_t seed)
 		} while (D_RW(hashmap)->hash_fun_a == 0);
 		D_RW(hashmap)->hash_fun_b = (uint32_t)rand();
 		D_RW(hashmap)->hash_fun_p = HASH_FUNC_COEFF_P;
+		
+		// BUG //
 
 		D_RW(hashmap)->buckets = TX_ZALLOC(struct buckets, sz);
 		D_RW(D_RW(hashmap)->buckets)->nbuckets = len;
         TX_ADD(hashmap);
+		
+		// BUG //
+
 	} TX_ONABORT {
 		fprintf(stderr, "%s: transaction aborted: %s\n", __func__,
 			pmemobj_errormsg());
@@ -51,6 +57,7 @@ create_hashmap(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint32_t seed)
 ===== assistant =====
 
 ## Correction 1
+
 ''' C
 
     static void
@@ -69,9 +76,14 @@ create_hashmap(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint32_t seed)
 		} while (D_RW(hashmap)->hash_fun_a == 0);
 		D_RW(hashmap)->hash_fun_b = (uint32_t)rand();
 		D_RW(hashmap)->hash_fun_p = HASH_FUNC_COEFF_P;
-
+		
+		// BUG //
+		
 		D_RW(hashmap)->buckets = TX_ZALLOC(struct buckets, sz);
 		D_RW(D_RW(hashmap)->buckets)->nbuckets = len;
+		
+		// BUG //
+
 	} TX_ONABORT {
 		fprintf(stderr, "%s: transaction aborted: %s\n", __func__,
 			pmemobj_errormsg());
@@ -82,6 +94,8 @@ create_hashmap(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint32_t seed)
 '''.
 
 ## Explanation
+In the example, the bug to repair is located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fix is put in the area of the code delimited by the two '// BUG //' expressions.
 In the correction, one of the 'TX_ADD(hashmap);' calls has been removed. The 'TX_ADD(hashmap);' call is only made once at the beginning of the transaction block,
 which is the correct way to indicate that 'hashmap' is part of the transaction.
 By removing the redundant 'TX_ADD(hashmap);', it is removed the unnecessary duplication of statements. This change simplifies the code while preserving the correct transactional behaviour.
@@ -89,6 +103,7 @@ By removing the redundant 'TX_ADD(hashmap);', it is removed the unnecessary dupl
 ===== user =====
 
 ## Example 2
+
 ''' C
 
 void write_hello_string (char *buf, char *path)
@@ -106,11 +121,15 @@ void write_hello_string (char *buf, char *path)
 	PMEMoid root = pmemobj_root(pop, sizeof (struct my_root));
     struct my_root *rootp = pmemobj_direct(root);
     
+	// BUG //
+
     rootp->len = strlen(buf);
     
     pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));
     pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));
 	
+	// BUG //
+
     printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
 	pmemobj_close(pop);	
 
@@ -122,6 +141,7 @@ void write_hello_string (char *buf, char *path)
 ===== assistant =====
 
 ## Correction 2
+
 ''' C
 
 void write_hello_string (char *buf, char *path)
@@ -139,11 +159,15 @@ void write_hello_string (char *buf, char *path)
 	PMEMoid root = pmemobj_root(pop, sizeof (struct my_root));
     struct my_root *rootp = pmemobj_direct(root);
     
+	// BUG //
+	
     rootp->len = strlen(buf);
-    
+
     pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));
 	
-    printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
+	// BUG //
+    
+	printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
 	pmemobj_close(pop);	
 
 	return;
@@ -152,6 +176,8 @@ void write_hello_string (char *buf, char *path)
 '''.
 
 ## Explanation
+In the example, the bug to repair is located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fix is put in the area of the code delimited by the two '// BUG //' expressions.
 In the correction, one of the 'pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));' calls has been removed because it is redundant.
 By removing the redundant 'pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));' call, the unnecessary overhead is eliminated, while still maintaining the correct behaviour of persisting the 'len' field, ensuring that this specific data is correctly persisted in the persistent memory pool.
 
@@ -159,6 +185,7 @@ By removing the redundant 'pmemobj_persist(pop, &rootp->len, sizeof (rootp->len)
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * rbtree_map_rotate -- (internal) performs a left/right rotation around a node

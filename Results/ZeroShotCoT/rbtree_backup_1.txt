@@ -1,4 +1,4 @@
-To resolve the bug, we need to identify the issue in the code. The bug is located within the area delimited by the expression '// BUG //'. Let's analyze the code within this area:
+To resolve the bug, we need to identify the issue in the code. The bug is located within the code block delimited by the expression '// BUG //'. Let's analyze this code block and identify the problem.
 
 ``` C
 // BUG //
@@ -6,7 +6,6 @@ To resolve the bug, we need to identify the issue in the code. The bug is locate
 TOID(struct tree_map_node) child = D_RO(node)->slots[!c];
 TOID(struct tree_map_node) s = D_RO(map)->sentinel;
 
-// TX_ADD(node);	
 TX_ADD(child);
 
 PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
@@ -14,17 +13,16 @@ PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
 // BUG //
 ```
 
-The bug seems to be related to the transactional memory operations. The `TX_ADD(child)` operation is correctly placed, but the `TX_ADD(node)` operation is commented out. We need to uncomment this line to ensure that the `node` object is included in the transaction.
-
-To fix the bug, we need to uncomment the line `TX_ADD(node);` within the code:
+The bug seems to be related to the assignment of `child` variable. The code is trying to assign `D_RO(node)->slots[!c]` to `child`, but it is missing the transactional context. To fix this bug, we need to add the transactional context to the assignment statement.
 
 ``` C
 // BUG //
 
-TOID(struct tree_map_node) child = D_RO(node)->slots[!c];
+TOID(struct tree_map_node) child;
+TX_ADD(node);
+child = D_RO(node)->slots[!c];
 TOID(struct tree_map_node) s = D_RO(map)->sentinel;
 
-TX_ADD(node);	
 TX_ADD(child);
 
 PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
@@ -32,4 +30,4 @@ PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
 // BUG //
 ```
 
-Now the bug is fixed. The `node` object will be included in the transaction, ensuring that the changes made to it are persistent.
+Now, the assignment of `child` variable is within the transactional context, and the bug should be resolved.

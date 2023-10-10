@@ -17,6 +17,7 @@ Put the whole corrected program within code delimiters, as follows:
 ### EXAMPLES
 
 ## Example 1
+
 ''' C
 
 int main(int argc, char *argv[]) {
@@ -33,7 +34,13 @@ int main(int argc, char *argv[]) {
     struct root *root_ptr = pmemobj_direct(root_oid);
 
     TX_BEGIN(pop) {
+
+        // BUG //
+
         PM_EQU(D_RW(root_ptr->value, 42));
+
+        // BUG //
+
     } TX_ONABORT {
         perror("Transaction aborted");
     } TX_END
@@ -48,6 +55,7 @@ int main(int argc, char *argv[]) {
 ===== assistant =====
 
 ## Correction 1
+
 ''' C
 
 int main(int argc, char *argv[]) {
@@ -64,7 +72,13 @@ int main(int argc, char *argv[]) {
     struct root *root_ptr = pmemobj_direct(root_oid);
 
     TX_BEGIN(pop) {
+        
+        // BUG //
+
         TX_SET(root_ptr->value, 42);
+
+        // BUG //
+
     } TX_ONABORT {
         perror("Transaction aborted");
     } TX_END
@@ -78,12 +92,15 @@ int main(int argc, char *argv[]) {
 '''.
 
 ## Explanation
+In the example, the bug to repair is located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fix is put in the area of the code delimited by the two '// BUG //' expressions.
 In the correction, the correct transaction-related macro, 'TX_SET(root_ptr->value, 42);', is used. It sets the value pointed to by 'root_ptr->value' to '42' within the transaction using the 'TX_SET' macro.
 By using the correct macro, it is ensured that the value attribution is part of the transaction, guaranteeing that if the transaction aborts, the operation is rolled back. 
 
 ===== user =====
 
 ## Example 2
+
 ''' C
 
 int main(int argc, char *argv[]) {
@@ -105,10 +122,14 @@ int main(int argc, char *argv[]) {
 
     int *value_ptr = pmemobj_direct(value);
 
+    // BUG //
+
     if (*value_ptr == 42) {
         TX_ADD(value);
         TX_ADD(value);
     }
+
+    // BUG //
 
     pmemobj_close(pop);
 
@@ -120,6 +141,7 @@ int main(int argc, char *argv[]) {
 ===== assistant =====
 
 ## Correction 2
+
 ''' C
  
 int main(int argc, char *argv[]) {
@@ -141,9 +163,13 @@ int main(int argc, char *argv[]) {
 
     int *value_ptr = pmemobj_direct(value);
 
+    // BUG //
+
     if (*value_ptr == 42) {
         TX_ADD(value);
     }
+
+    // BUG //
 
     pmemobj_close(pop);
 
@@ -153,6 +179,8 @@ int main(int argc, char *argv[]) {
 '''.
 
 ## Explanation
+In the example, the bug to repair is located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fix is put in the area of the code delimited by the two '// BUG //' expressions.
 In the correction, one of the 'TX_ADD(value);' calls has been removed because it is redundant.
 The correction eliminates unnecessary overhead and maintains the correct behaviour intended in the code, including the value in the transaction if the condition is met, preserving the correct transactional behaviour.
 
@@ -160,6 +188,7 @@ The correction eliminates unnecessary overhead and maintains the correct behavio
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * rbtree_map_rotate -- (internal) performs a left/right rotation around a node

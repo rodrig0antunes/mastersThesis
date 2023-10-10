@@ -1,4 +1,4 @@
-To resolve the bug, we need to identify the issue and make the necessary corrections. 
+To resolve the bug, we need to identify the issue and provide a fix. 
 
 Looking at the code, the first bug is located at the line:
 
@@ -6,26 +6,73 @@ Looking at the code, the first bug is located at the line:
 TOID(struct tree_map_node) sb = NODE_PARENT_AT(n, !c); /* sibling */
 ```
 
-To fix this bug, we need to replace `NODE_PARENT_AT` with `NODE_PARENT`. 
-
-The corrected code will be:
+The bug is not explicitly mentioned, but based on the context, it seems that the user intended to access the parent node of `n` and assign it to `sb`. However, the code is using the `NODE_PARENT_AT` macro, which is not defined in the provided code snippet. To fix this bug, we can replace the line with:
 
 ```C
-TOID(struct tree_map_node) sb = NODE_PARENT(n); /* sibling */
+TOID(struct tree_map_node) sb = D_RO(NODE_P(n))->slots[!c]; /* sibling */
 ```
 
-Now, let's move on to the second bug. It is located at the line:
+This change will correctly assign the sibling node to `sb` by accessing the parent node `NODE_P(n)` and then accessing the appropriate slot based on the `!c` condition.
+
+The second bug is located at the line:
 
 ```C
-sb = NODE_PARENT_AT(n, !c);
+TX_SET(NODE_P(n), color, COLOR_RED);
 ```
 
-To fix this bug, we need to replace `NODE_PARENT_AT` with `NODE_PARENT`. 
-
-The corrected code will be:
+The bug is not explicitly mentioned, but based on the context, it seems that the user intended to set the color of the parent node of `n` to `COLOR_RED`. However, the code is using the `NODE_P` macro, which is not defined in the provided code snippet. To fix this bug, we can replace the line with:
 
 ```C
-sb = NODE_PARENT(n);
+TX_SET(D_RW(NODE_P(n)), color, COLOR_RED);
 ```
 
-Now, let's put the whole corrected program together.
+This change will correctly set the color of the parent node `NODE_P(n)` to `COLOR_RED` by accessing the parent node and using the `D_RW` macro to obtain a modifiable pointer.
+
+Here is the corrected code:
+
+```C
+/*
+ * rbtree_map_repair_branch -- (internal) restores red-black tree in one branch
+ */
+static TOID(struct tree_map_node)
+rbtree_map_repair_branch(TOID(struct rbtree_map) map,
+	TOID(struct tree_map_node) n, enum rb_children c)
+{
+
+	// BUG //
+
+	TOID(struct tree_map_node) sb = D_RO(NODE_P(n))->slots[!c]; /* sibling */
+	if (D_RO(sb)->color == COLOR_RED) {
+		PM_EQU(D_RW(sb)->color, COLOR_BLACK);
+		TX_SET(D_RW(NODE_P(n)), color, COLOR_RED);
+		rbtree_map_rotate(map, NODE_P(n), c);
+		sb = D_RO(NODE_P(n))->slots[!c];
+		
+		// BUG //
+		
+	}
+
+	if (D_RO(D_RO(sb)->slots[RB_RIGHT])->color == COLOR_BLACK &&
+		D_RO(D_RO(sb)->slots[RB_LEFT])->color == COLOR_BLACK) {
+		TX_SET(sb, color, COLOR_RED);
+		return D_RO(n)->parent;
+	} else {
+		if (D_RO(D_RO(sb)->slots[!c])->color == COLOR_BLACK) {
+			TX_SET(D_RW(sb)->slots[c], color, COLOR_BLACK);
+			TX_SET(sb, color, COLOR_RED);
+			rbtree_map_rotate(map, sb, !c);
+			sb = D_RO(NODE_P(n))->slots[!c];
+		}
+		TX_SET(sb, color, D_RO(NODE_P(n))->color);
+		TX_SET(D_RW(NODE_P(n)), color, COLOR_BLACK);
+		TX_SET(D_RW(sb)->slots[!c], color, COLOR_BLACK);
+		rbtree_map_rotate(map, NODE_P(n), c);
+
+		return RB_FIRST(map);
+	}
+
+	return n;
+}
+```
+
+Please note that this fix assumes that the `NODE_P` and `NODE_PARENT_AT` macros are defined correctly elsewhere in the code. If these macros are not defined or are defined differently, further adjustments may be necessary.

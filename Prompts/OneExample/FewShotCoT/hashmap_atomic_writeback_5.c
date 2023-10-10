@@ -17,6 +17,7 @@ Put the whole corrected program within code delimiters, as follows:
 ### EXAMPLES
 
 ## Example
+
 ''' C
 
 void write_hello_string (char *buf, char *path)
@@ -34,8 +35,12 @@ void write_hello_string (char *buf, char *path)
 	PMEMoid root = pmemobj_root(pop, sizeof (struct my_root));
     struct my_root *rootp = pmemobj_direct(root);
     
+	// BUG //
+
     rootp->len = strlen(buf);
     
+	// BUG //
+
     printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
 	pmemobj_close(pop);	
 
@@ -47,6 +52,7 @@ void write_hello_string (char *buf, char *path)
 ===== assistant =====
 
 ## Correction
+
 ''' C
 
 void write_hello_string (char *buf, char *path)
@@ -64,10 +70,14 @@ void write_hello_string (char *buf, char *path)
 	PMEMoid root = pmemobj_root(pop, sizeof (struct my_root));
     struct my_root *rootp = pmemobj_direct(root);
     
+	// BUG //
+
     rootp->len = strlen(buf);
     
     pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));
 	
+	// BUG //
+
     printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
 	pmemobj_close(pop);	
 
@@ -77,12 +87,15 @@ void write_hello_string (char *buf, char *path)
 '''.
 
 ## Explanation
+In the example, the bug to repair is located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fix is put in the area of the code delimited by the two '// BUG //' expressions.
 In the correction, after the update 'rootp->len', it needs to be included 'pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));' to ensure that the value of 'rootp->len' is durably stored in the persistent memory pool. 
 By adding 'pmemobj_persist(pop, &rootp->len, sizeof(rootp->len));', it is guaranteed that the assignment to 'rootp->len' is properly preserved, and the data remains consistent. This correction ensures data durability in persistent memory.
 
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * hm_atomic_insert -- inserts specified value into the hashmap,

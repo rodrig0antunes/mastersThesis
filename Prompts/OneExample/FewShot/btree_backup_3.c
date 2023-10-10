@@ -17,6 +17,7 @@ Put the whole corrected program within code delimiters, as follows:
 ### EXAMPLES
 
 ## Example
+
 ''' C
 
 int
@@ -25,7 +26,12 @@ hm_tx_create(PMEMobjpool *pop, TOID(struct hashmap_tx) *map, void *arg)
 	struct hashmap_args *args = (struct hashmap_args *)arg;
 	int ret = 0;
 	TX_BEGIN(pop) {
+
+		// BUG //
+
 		*map = TX_ZNEW(struct hashmap_tx);
+
+		// BUG //
 
 		uint32_t seed = args ? args->seed : 0;
 		create_hashmap(pop, *map, seed);
@@ -41,6 +47,7 @@ hm_tx_create(PMEMobjpool *pop, TOID(struct hashmap_tx) *map, void *arg)
 ===== assistant =====
 
 ## Correction
+
 ''' C
 
 int
@@ -49,9 +56,14 @@ hm_tx_create(PMEMobjpool *pop, TOID(struct hashmap_tx) *map, void *arg)
 	struct hashmap_args *args = (struct hashmap_args *)arg;
 	int ret = 0;
 	TX_BEGIN(pop) {
+
+		// BUG //
+
 		TX_ADD_DIRECT(map);
 		*map = TX_ZNEW(struct hashmap_tx);
 
+		// BUG //
+		
 		uint32_t seed = args ? args->seed : 0;
 		create_hashmap(pop, *map, seed);
 	} TX_ONABORT {
@@ -66,6 +78,7 @@ hm_tx_create(PMEMobjpool *pop, TOID(struct hashmap_tx) *map, void *arg)
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * btree_map_rotate_right -- (internal) takes one element from right sibling

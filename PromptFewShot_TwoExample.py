@@ -45,6 +45,7 @@ Put the whole corrected program within code delimiters, as follows:
 ### EXAMPLES
 
 ## Example 1
+
 ''' C
 {example_1}
 '''.
@@ -52,6 +53,7 @@ Put the whole corrected program within code delimiters, as follows:
 ===== assistant =====
 
 ## Correction 1
+
 ''' C
 {correction_1}
 '''.
@@ -59,6 +61,7 @@ Put the whole corrected program within code delimiters, as follows:
 ===== user =====
 
 ## Example 2
+
 ''' C
 {example_2}
 '''.
@@ -66,6 +69,7 @@ Put the whole corrected program within code delimiters, as follows:
 ===== assistant =====
 
 ## Correction 2
+
 ''' C
 {correction_2}
 '''.
@@ -73,6 +77,7 @@ Put the whole corrected program within code delimiters, as follows:
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 {code_to_correct}
 '''.

@@ -1,31 +1,28 @@
+### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ``` C
 /*
-* rbtree_map_rotate -- (internal) performs a left/right rotation around a node
-*/
+ * rbtree_map_rotate -- (internal) performs a left/right rotation around a node
+ */
 static void
 rbtree_map_rotate(TOID(struct rbtree_map) map,
-TOID(struct tree_map_node) node, enum rb_children c)
+	TOID(struct tree_map_node) node, enum rb_children c)
 {
-    TOID(struct tree_map_node) child = D_RO(node)->slots[!c];
-    TOID(struct tree_map_node) s = D_RO(map)->sentinel;
+	TOID(struct tree_map_node) child = D_RO(node)->slots[!c];
+	TOID(struct tree_map_node) s = D_RO(map)->sentinel;
+		
+	TX_ADD(node);
 
-    // BUG //
-    TX_BEGIN(map) {
-        TX_ADD(node);
-        TX_ADD(child);
+	PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
+	
+	if (!TOID_EQUALS(D_RO(child)->slots[c], s))
+		TX_SET(D_RW(child)->slots[c], parent, node);
+	
+	PM_EQU(NODE_P(child), NODE_P(node));
 
-        PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
+	TX_SET(NODE_P(node), slots[NODE_LOCATION(node)], child);
 
-        if (!TOID_EQUALS(D_RO(child)->slots[c], s))
-            TX_SET(D_RW(child)->slots[c], parent, node);
-
-        PM_EQU(NODE_P(child), NODE_P(node));
-
-        TX_SET(NODE_P(node), slots[NODE_LOCATION(node)], child);
-
-        PM_EQU(D_RW(child)->slots[c], node);
-        PM_EQU(D_RW(node)->parent, child);
-    } TX_END
+	PM_EQU(D_RW(child)->slots[c], node);
+	PM_EQU(D_RW(node)->parent, child);
 }
 ```
-The bug in the provided code is that it is missing the transaction block. The `TX_BEGIN` and `TX_END` macros should be used to define the transaction block. The `TX_ADD` macro should be used to add the modified objects to the transaction.

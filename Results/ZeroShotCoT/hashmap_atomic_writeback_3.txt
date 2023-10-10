@@ -1,16 +1,8 @@
-The bug is located in the code block delimited by the expression '// BUG //'. Let's analyze this code block and understand what needs to be fixed.
+To resolve the bug, we need to ensure that the modification to the `count_dirty` field of the `hashmap` structure is persisted to the persistent memory. 
 
-The code block contains two lines of code that are commented out:
-``` C
-// pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
-// 		sizeof(D_RW(hashmap)->count_dirty));
-```
+To do this, we can use the `pmemobj_persist()` function to persist the modification. 
 
-It seems that the user intended to persist the changes made to the `count_dirty` field of the `hashmap` object. However, the code is currently commented out, which means that the changes are not being persisted.
-
-To fix this bug, we need to uncomment the line of code that performs the persistence operation. This will ensure that the changes made to the `count_dirty` field are persisted to the persistent memory.
-
-Let's update the code to include the fix:
+Here's the corrected code:
 
 ``` C
 /*
@@ -37,11 +29,9 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 	}
 	
 	// BUG //
-
 	PM_EQU(D_RW(hashmap)->count_dirty, 1);
 	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
 			sizeof(D_RW(hashmap)->count_dirty));
-		
 	// BUG //
 
 	struct entry_args args = {
@@ -84,4 +74,4 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 }
 ```
 
-Now the code includes the fix for the bug. The line of code that performs the persistence operation for the `count_dirty` field has been uncommented. This will ensure that the changes made to the field are persisted to the persistent memory.
+Now the modification to the `count_dirty` field will be persisted correctly.

@@ -17,6 +17,7 @@ Put the whole corrected program within code delimiters, as follows:
 ### EXAMPLES
 
 ## Example 1
+
 ''' C
 
 int main(int argc, char *argv[]) {
@@ -38,10 +39,14 @@ int main(int argc, char *argv[]) {
 
     int *value_ptr = pmemobj_direct(value);
 
+    // BUG //
+
     if (*value_ptr == 42) {
         TX_ADD(value);
         TX_ADD(value);
     }
+
+    // BUG //
 
     pmemobj_close(pop);
 
@@ -53,6 +58,7 @@ int main(int argc, char *argv[]) {
 ===== assistant =====
 
 ## Correction 1
+
 ''' C
  
 int main(int argc, char *argv[]) {
@@ -74,9 +80,13 @@ int main(int argc, char *argv[]) {
 
     int *value_ptr = pmemobj_direct(value);
 
+    // BUG //
+
     if (*value_ptr == 42) {
         TX_ADD(value);
     }
+
+    // BUG //
 
     pmemobj_close(pop);
 
@@ -88,6 +98,7 @@ int main(int argc, char *argv[]) {
 ===== user =====
 
 ## Example 2
+
 ''' C
 
 static void
@@ -106,10 +117,15 @@ create_hashmap(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint32_t seed)
 		} while (D_RW(hashmap)->hash_fun_a == 0);
 		D_RW(hashmap)->hash_fun_b = (uint32_t)rand();
 		D_RW(hashmap)->hash_fun_p = HASH_FUNC_COEFF_P;
+		
+		// BUG //
 
 		D_RW(hashmap)->buckets = TX_ZALLOC(struct buckets, sz);
 		D_RW(D_RW(hashmap)->buckets)->nbuckets = len;
         TX_ADD(hashmap);
+		
+		// BUG //
+
 	} TX_ONABORT {
 		fprintf(stderr, "%s: transaction aborted: %s\n", __func__,
 			pmemobj_errormsg());
@@ -122,6 +138,7 @@ create_hashmap(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint32_t seed)
 ===== assistant =====
 
 ## Correction 2
+
 ''' C
 
     static void
@@ -140,9 +157,14 @@ create_hashmap(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint32_t seed)
 		} while (D_RW(hashmap)->hash_fun_a == 0);
 		D_RW(hashmap)->hash_fun_b = (uint32_t)rand();
 		D_RW(hashmap)->hash_fun_p = HASH_FUNC_COEFF_P;
-
+		
+		// BUG //
+		
 		D_RW(hashmap)->buckets = TX_ZALLOC(struct buckets, sz);
 		D_RW(D_RW(hashmap)->buckets)->nbuckets = len;
+		
+		// BUG //
+
 	} TX_ONABORT {
 		fprintf(stderr, "%s: transaction aborted: %s\n", __func__,
 			pmemobj_errormsg());
@@ -155,6 +177,7 @@ create_hashmap(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint32_t seed)
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * btree_map_create_split_node -- (internal) splits a node into two

@@ -17,6 +17,7 @@ Put the whole corrected program within code delimiters, as follows:
 ### EXAMPLES
 
 ## Example 1
+
 ''' C
 
 void write_hello_string (char *buf, char *path)
@@ -34,8 +35,12 @@ void write_hello_string (char *buf, char *path)
 	PMEMoid root = pmemobj_root(pop, sizeof (struct my_root));
     struct my_root *rootp = pmemobj_direct(root);
     
+	// BUG //
+
     rootp->len = strlen(buf);
     
+	// BUG //
+
     printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
 	pmemobj_close(pop);	
 
@@ -47,6 +52,7 @@ void write_hello_string (char *buf, char *path)
 ===== assistant =====
 
 ## Correction 1
+
 ''' C
 
 void write_hello_string (char *buf, char *path)
@@ -64,10 +70,14 @@ void write_hello_string (char *buf, char *path)
 	PMEMoid root = pmemobj_root(pop, sizeof (struct my_root));
     struct my_root *rootp = pmemobj_direct(root);
     
+	// BUG //
+
     rootp->len = strlen(buf);
     
     pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));
 	
+	// BUG //
+
     printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
 	pmemobj_close(pop);	
 
@@ -79,6 +89,7 @@ void write_hello_string (char *buf, char *path)
 ===== user =====
 
 ## Example 2
+
 ''' C
 
 int
@@ -87,7 +98,12 @@ hm_tx_create(PMEMobjpool *pop, TOID(struct hashmap_tx) *map, void *arg)
 	struct hashmap_args *args = (struct hashmap_args *)arg;
 	int ret = 0;
 	TX_BEGIN(pop) {
+
+		// BUG //
+
 		*map = TX_ZNEW(struct hashmap_tx);
+
+		// BUG //
 
 		uint32_t seed = args ? args->seed : 0;
 		create_hashmap(pop, *map, seed);
@@ -103,6 +119,7 @@ hm_tx_create(PMEMobjpool *pop, TOID(struct hashmap_tx) *map, void *arg)
 ===== assistant =====
 
 ## Correction 2
+
 ''' C
 
 int
@@ -111,9 +128,14 @@ hm_tx_create(PMEMobjpool *pop, TOID(struct hashmap_tx) *map, void *arg)
 	struct hashmap_args *args = (struct hashmap_args *)arg;
 	int ret = 0;
 	TX_BEGIN(pop) {
+
+		// BUG //
+
 		TX_ADD_DIRECT(map);
 		*map = TX_ZNEW(struct hashmap_tx);
 
+		// BUG //
+		
 		uint32_t seed = args ? args->seed : 0;
 		create_hashmap(pop, *map, seed);
 	} TX_ONABORT {
@@ -128,6 +150,7 @@ hm_tx_create(PMEMobjpool *pop, TOID(struct hashmap_tx) *map, void *arg)
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * hm_atomic_rebuild_finish -- finishes rebuild, assumes buckets_tmp is not null

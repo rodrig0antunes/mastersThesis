@@ -17,6 +17,7 @@ Put the whole corrected program within code delimiters, as follows:
 ### EXAMPLES
 
 ## Example 1
+
 ''' C
 
 int main(int argc, char *argv[]) {
@@ -33,7 +34,13 @@ int main(int argc, char *argv[]) {
     struct root *root_ptr = pmemobj_direct(root_oid);
 
     TX_BEGIN(pop) {
+
+        // BUG //
+
         PM_EQU(D_RW(root_ptr->value, 42));
+
+        // BUG //
+
     } TX_ONABORT {
         perror("Transaction aborted");
     } TX_END
@@ -48,6 +55,7 @@ int main(int argc, char *argv[]) {
 ===== assistant =====
 
 ## Correction 1
+
 ''' C
 
 int main(int argc, char *argv[]) {
@@ -64,7 +72,13 @@ int main(int argc, char *argv[]) {
     struct root *root_ptr = pmemobj_direct(root_oid);
 
     TX_BEGIN(pop) {
+        
+        // BUG //
+
         TX_SET(root_ptr->value, 42);
+
+        // BUG //
+
     } TX_ONABORT {
         perror("Transaction aborted");
     } TX_END
@@ -80,6 +94,7 @@ int main(int argc, char *argv[]) {
 ===== user =====
 
 ## Example 2
+
 ''' C
 
 int main(int argc, char *argv[]) {
@@ -101,10 +116,14 @@ int main(int argc, char *argv[]) {
 
     int *value_ptr = pmemobj_direct(value);
 
+    // BUG //
+
     if (*value_ptr == 42) {
         TX_ADD(value);
         TX_ADD(value);
     }
+
+    // BUG //
 
     pmemobj_close(pop);
 
@@ -116,6 +135,7 @@ int main(int argc, char *argv[]) {
 ===== assistant =====
 
 ## Correction 2
+
 ''' C
  
 int main(int argc, char *argv[]) {
@@ -137,9 +157,13 @@ int main(int argc, char *argv[]) {
 
     int *value_ptr = pmemobj_direct(value);
 
+    // BUG //
+
     if (*value_ptr == 42) {
         TX_ADD(value);
     }
+
+    // BUG //
 
     pmemobj_close(pop);
 
@@ -151,6 +175,7 @@ int main(int argc, char *argv[]) {
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * rbtree_map_rotate -- (internal) performs a left/right rotation around a node

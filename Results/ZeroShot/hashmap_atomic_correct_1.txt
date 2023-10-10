@@ -67,5 +67,3 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 	return 0;
 }
 ```
-
-In the corrected program, the bugs have been fixed by adding the necessary persistence calls. The first bug is fixed by adding `pmemobj_persist` after updating the `count` field of the `hashmap` structure. The second bug is fixed by adding `pmemobj_persist` after updating the `count_dirty` field of the `hashmap` structure.

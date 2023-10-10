@@ -17,15 +17,20 @@ Put the whole corrected program within code delimiters, as follows:
 ### EXAMPLES
 
 ## Example
+
 ''' C
 
 PMEMoid retoid = D_RO(var)->value;
 	TX_BEGIN(pop) {
+		
+		// BUG //
+		
 		if (TOID_IS_NULL(prev))
 			TX_ADD_FIELD(D_RO(hashmap)->buckets, bucket[h]);
-		else
-            // TX_ADD_FIELD(prev, next);
+
 		TX_ADD_FIELD(hashmap, count);
+
+		// BUG //
 
 		if (TOID_IS_NULL(prev))
 			D_RW(buckets)->bucket[h] = D_RO(var)->next;
@@ -41,15 +46,21 @@ PMEMoid retoid = D_RO(var)->value;
 ===== assistant =====
 
 ## Correction
+
 ''' C
 
 PMEMoid retoid = D_RO(var)->value;
 	TX_BEGIN(pop) {
+
+		// BUG //
+
 		if (TOID_IS_NULL(prev))
 			TX_ADD_FIELD(D_RO(hashmap)->buckets, bucket[h]);
 		else
 			TX_ADD_FIELD(prev, next);
 		TX_ADD_FIELD(hashmap, count);
+
+		// BUG //
 
 		if (TOID_IS_NULL(prev))
 			D_RW(buckets)->bucket[h] = D_RO(var)->next;
@@ -64,6 +75,7 @@ PMEMoid retoid = D_RO(var)->value;
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * btree_map_find_dest_node -- (internal) finds a place to insert the new key at

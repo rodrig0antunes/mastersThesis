@@ -1,4 +1,4 @@
-To resolve the bug, we need to insert the new node `new_node` into the appropriate position in the tree. Currently, the code is missing the logic to do this.
+To resolve the bug, we need to insert the new node into the appropriate position in the tree. 
 
 Here's the corrected code:
 
@@ -35,11 +35,11 @@ ctree_map_insert_leaf(struct tree_map_entry *p,
 	PM_EQU(D_RW(new_node)->entries[!d], *p);
 
 	pmemobj_tx_add_range_direct(p, sizeof(*p));
-	pmemobj_tx_add_range_direct(p, sizeof(*p));
+	pmemobj_tx_add_range_direct(new_node, sizeof(*new_node));
 
 	PM_EQU(p->key, 0);
 	PM_EQU(p->slot, new_node.oid);
 }
 ```
 
-I have removed the "// BUG //" comments as they are no longer needed.
+In the corrected code, we have replaced the bug section with the correct code. We add the new node to the appropriate slot in the tree by assigning `*p` to `D_RW(new_node)->entries[!d]`. We also add the new_node to the transaction using `pmemobj_tx_add_range_direct(new_node, sizeof(*new_node))`.
