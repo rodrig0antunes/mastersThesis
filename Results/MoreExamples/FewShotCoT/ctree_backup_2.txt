@@ -1,4 +1,5 @@
-### CORRECTED PERSISTENT MEMORY PROGRAM
+### Correction
+
 ''' C
 /*
  * ctree_map_remove -- removes key-value pair from the map
@@ -31,12 +32,13 @@ ctree_map_remove(PMEMobjpool *pop, TOID(struct ctree_map) map, uint64_t key)
 		TX_BEGIN(pop) {
 				
 		// BUG //
+
 			struct tree_map_entry *dest = parent;
 			TOID(struct tree_map_node) node;
 			TOID_ASSIGN(node, parent->slot);
-			pmemobj_tx_add_range_direct(dest, sizeof(*dest));
 			PM_EQU(*dest, D_RW(node)->entries[
-				D_RO(node)->entries[0].key == leaf->key]);
+				D_RO(node)->entries[0].key != leaf->key]);
+		
 		// BUG //
 
 			TX_FREE(node);
@@ -47,8 +49,8 @@ ctree_map_remove(PMEMobjpool *pop, TOID(struct ctree_map) map, uint64_t key)
 }
 '''.
 
-## Explanation
-In the correction, the missing line 'pmemobj_tx_add_range_direct(dest, sizeof(*dest));' is added before the assignment 'PM_EQU(*dest, D_RW(node)->entries[D_RO(node)->entries[0].key == leaf->key]);'. 
-This line tells the transaction system that it is intended to modify the 'dest' pointer during the transaction. It essentially registers 'dest' as a part of the transaction, making sure that if the transaction aborts, the changes to 'dest' are rolled back as well.
-By adding 'pmemobj_tx_add_range_direct(dest, sizeof(*dest));', the transaction system ensures that the assignment to 'dest' is properly recorded. 
-If the transaction is successful, this change will be committed, and if the transaction aborts, it will be rolled back, maintaining the consistency of your persistent memory data structures.
+### Explanation
+In the example, there are two bugs to repair, located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, the line 'PM_EQU(*dest, D_RW(node)->entries[D_RO(node)->entries[0].key == leaf->key]);' is replaced with 'PM_EQU(*dest, D_RW(node)->entries[D_RO(node)->entries[0].key != leaf->key]);'.
+This change ensures that the correct entry is selected when swapping the parent internal node with the remaining node. The condition 'D_RO(node)->entries[0].key != leaf->key' selects the correct entry based on the key value of the leaf node.

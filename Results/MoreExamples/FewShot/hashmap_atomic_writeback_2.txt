@@ -1,4 +1,5 @@
-### Correction
+### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ``` C
 /*
  * hm_atomic_rebuild_finish -- finishes rebuild, assumes buckets_tmp is not null
@@ -40,11 +41,14 @@ hm_atomic_rebuild_finish(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap)
 	 * See recovery process in hm_init and TOID_IS_NULL macro definition.
 	 */
 			
-	// BUG //
+		// BUG //
+			
 	PM_EQU(D_RW(hashmap)->buckets_tmp.oid.off, 0);
-	pmemobj_persist(pop, &D_RW(hashmap)->buckets_tmp.oid.off,
+		
+		pmemobj_persist(pop, &D_RW(hashmap)->buckets_tmp.oid.off,
 			sizeof(D_RW(hashmap)->buckets_tmp.oid.off));
-	// BUG //
+			
+		// BUG //
 
 	PMTest_isPersistent(&D_RW(hashmap)->buckets, sizeof(D_RW(hashmap)->buckets));
 	PMTest_isPersistent(&D_RW(hashmap)->buckets_tmp, sizeof(D_RW(hashmap)->buckets_tmp));

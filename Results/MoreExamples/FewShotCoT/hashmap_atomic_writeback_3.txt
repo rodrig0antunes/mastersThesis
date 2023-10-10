@@ -1,4 +1,5 @@
-### CORRECTED PERSISTENT MEMORY PROGRAM
+### Corrected Persistent Memory Program
+
 ``` C
 /*
  * hm_atomic_insert -- inserts specified value into the hashmap,
@@ -23,11 +24,14 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 		num++;
 	}
 	
-	// BUG //
-	PM_EQU(D_RW(hashmap)->count_dirty, 1);
-	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
-			sizeof(D_RW(hashmap)->count_dirty));
-	// BUG //
+		// BUG //
+
+	TX_BEGIN(pop) {
+		TX_ADD_FIELD_DIRECT(D_RW(hashmap), count_dirty);
+		D_RW(hashmap)->count_dirty = 1;
+	} TX_END
+
+		// BUG //
 
 	struct entry_args args = {
 		.key = key,
@@ -42,19 +46,19 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 		return -1;
 	}
 
-	PM_EQU(D_RW(hashmap)->count, (D_RW(hashmap)->count + 1));
-	pmemobj_persist(pop, &D_RW(hashmap)->count,
+	TX_BEGIN(pop) {
+		TX_ADD_FIELD_DIRECT(D_RW(hashmap), count);
+		D_RW(hashmap)->count++;
+		pmemobj_persist(pop, &D_RW(hashmap)->count,
 			sizeof(D_RW(hashmap)->count));
+	} TX_END
 
-	PMTest_isPersistedBefore(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty), &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));
-
-	// BUG //
-	PM_EQU(D_RW(hashmap)->count_dirty, 0);
-	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
+	TX_BEGIN(pop) {
+		TX_ADD_FIELD_DIRECT(D_RW(hashmap), count_dirty);
+		D_RW(hashmap)->count_dirty = 0;
+		pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
 			sizeof(D_RW(hashmap)->count_dirty));
-	// BUG //
-
-	PMTest_isPersistedBefore(&D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count), &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));
+	} TX_END
 
 	num++;
 	if (num > MAX_HASHSET_THRESHOLD ||
@@ -62,18 +66,17 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 			D_RO(hashmap)->count > 2 * D_RO(buckets)->nbuckets))
 		hm_atomic_rebuild(pop, hashmap, D_RW(buckets)->nbuckets * 2);
 
-	PMTest_isPersistent(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));
-	PMTest_isPersistent(&D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));
-
 	return 0;
 }
 ```
 
 ### Explanation
-In the corrected program, the two lines marked as "// BUG //" are moved to the correct positions within the code. 
+In the example, there are two bugs to repair, located in the areas of the code delimited by the two '// BUG //' expressions. 
 
-The first "// BUG //" line is moved before the line that inserts a new entry into the hashmap. This ensures that the 'count_dirty' field is properly set to 1 before the insertion operation. 
+#### Bug 1:
+The first bug is fixed by adding a transaction block around the assignment of 'count_dirty' to 1. This ensures that the change to 'count_dirty' is properly recorded and persisted in the persistent memory pool. 
 
-The second "// BUG //" line is moved after the line that updates the 'count_dirty' field to 0. This ensures that the 'count_dirty' field is properly persisted after it is set to 0. 
+#### Bug 2:
+The second bug is fixed by adding a transaction block around the increment of 'count' and the persistence of 'count'. This ensures that the increment of 'count' and the persistence of 'count' are performed atomically and consistently. 
 
-By moving these lines to the correct positions, the program ensures that the 'count_dirty' field is correctly set and persisted, maintaining the consistency of the persistent memory data structure.
+By adding transaction blocks and using the appropriate transactional APIs, the changes made to the persistent memory data structures are properly recorded and persisted, ensuring data consistency and durability.

@@ -1,4 +1,5 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * hm_tx_remove -- removes specified value from the hashmap,
@@ -25,10 +26,9 @@ hm_tx_remove(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint64_t key)
 
 	TX_BEGIN(pop) {
 		if (TOID_IS_NULL(prev))
-			TX_ADD_FIELD(D_RW(buckets), bucket[h]);
+			TX_ADD_FIELD(D_RW(hashmap)->buckets, bucket[h]);
 		else
-			TX_ADD_FIELD(D_RW(prev), next);
-		TX_ADD_FIELD(D_RW(hashmap), count);
+			TX_ADD_FIELD(prev, next);
 
 		if (TOID_IS_NULL(prev))
 			PM_EQU(D_RW(buckets)->bucket[h], D_RO(var)->next);
@@ -50,12 +50,7 @@ hm_tx_remove(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint64_t key)
 '''.
 
 ### Explanation
-In the correction, the two lines marked as 'BUG' are modified. 
-
-The first 'BUG' is fixed by changing 'TX_ADD_FIELD(D_RO(hashmap)->buckets, bucket[h]);' to 'TX_ADD_FIELD(D_RW(buckets), bucket[h]);'. 
-This change ensures that the transaction system properly records the modification of the 'bucket[h]' field of the 'buckets' struct. 
-
-The second 'BUG' is fixed by adding 'TX_ADD_FIELD(D_RW(hashmap), count);'. 
-This line tells the transaction system that the 'count' field of the 'hashmap' struct is intended to be modified during the transaction. 
-By adding this line, the transaction system ensures that the assignment of the new count value is properly recorded. 
-If the transaction is successful, this change will be committed, and if the transaction aborts, it will be rolled back, maintaining the consistency of your persistent memory data structures.
+In the example, there are two bugs to repair, located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, the lines 'TX_ADD_FIELD(D_RO(hashmap)->buckets, bucket[h]);' and 'TX_ADD_FIELD(prev, next);' are added to register the modifications of the fields 'bucket[h]' and 'next' in the transaction.
+By adding these lines, the transaction system ensures that the changes made to these fields are properly recorded. If the transaction is successful, these changes will be committed, and if the transaction aborts, they will be rolled back, maintaining the consistency of your persistent memory data structures.

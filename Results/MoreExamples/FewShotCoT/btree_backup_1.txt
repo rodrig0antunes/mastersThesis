@@ -1,5 +1,6 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
-''' C
+
+``` C
 /*
  * btree_map_find_dest_node -- (internal) finds a place to insert the new key at
  */
@@ -25,9 +26,14 @@ btree_map_find_dest_node(TOID(struct btree_map) map,
 			PM_EQU(D_RW(up)->slots[0], n);
 			PM_EQU(D_RW(up)->slots[1], right);
 
-			TX_ADD_DIRECT(map); // BUG //
+			// BUG //
+
+			TX_ADD_DIRECT(map);
 			PM_EQU(D_RW(map)->root, up);
 			n = up;
+
+			// BUG //
+
 		}
 	}
 
@@ -52,10 +58,11 @@ btree_map_find_dest_node(TOID(struct btree_map) map,
 	 */
 	return btree_map_find_dest_node(map, D_RO(n)->slots[i], n, key, p);
 }
-'''.
+```
 
-## Explanation
-In the correction, a new line 'TX_ADD_DIRECT(map);' is added before updating the root node 'D_RW(map)->root'. 
-This line tells the transaction system that it is intended to modify the 'map' pointer during the transaction. It essentially registers 'map' as a part of the transaction, making sure that if the transaction aborts, the changes to 'map' are rolled back as well.
-By adding 'TX_ADD_DIRECT(map);', the transaction system ensures that the assignment of the new root node 'up' to 'map' is properly recorded. 
+### Explanation
+In the example, there are two bugs to repair, located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, the line 'TX_ADD_DIRECT(map);' is added before assigning the new root node 'up' to 'D_RW(map)->root'. This line tells the transaction system that it is intended to modify the 'map' pointer during the transaction. It essentially registers 'map' as a part of the transaction, making sure that if the transaction aborts, the changes to 'map' are rolled back as well.
+By adding 'TX_ADD_DIRECT(map);', the transaction system ensures that the assignment of the new root node 'up' to 'D_RW(map)->root' is properly recorded. 
 If the transaction is successful, this change will be committed, and if the transaction aborts, it will be rolled back, maintaining the consistency of your persistent memory data structures.

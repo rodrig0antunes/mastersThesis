@@ -1,4 +1,5 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * btree_map_merge -- (internal) merges node and right sibling
@@ -25,8 +26,9 @@ btree_map_merge(TOID(struct btree_map) map, TOID(struct tree_map_node) rn,
 
 	TX_FREE(rn); /* right node is now empty */
 
-	TX_ADD(parent);
 	PM_EQU(D_RW(parent)->n, D_RO(parent)->n - 1);
+		
+	TX_ADD(parent);
 		
 	/* move everything to the right of the separator by one array slot */
 	PM_MEMMOVE(D_RW(parent)->items + p, D_RW(parent)->items + p + 1,
@@ -44,5 +46,11 @@ btree_map_merge(TOID(struct btree_map) map, TOID(struct tree_map_node) rn,
 }
 '''.
 
-## Explanation
-In the correction, the two lines marked as '// BUG //' are removed. These lines were mistakenly added and are not necessary for the correct functioning of the program. Removing these lines ensures that the program is free of unnecessary code and does not introduce any bugs or errors.
+### Explanation
+In the example, there are two bugs to repair, located in the areas of the code delimited by the '// BUG //' expressions. 
+In the correction of the example, the bug fixes are put in the areas of the code delimited by the '// BUG //' expressions.
+In the correction, the first bug fix is to add 'TX_ADD(parent);' after the line 'PM_EQU(D_RW(parent)->n, D_RO(parent)->n - 1);'. This line tells the transaction system that it is intended to modify the 'parent' pointer during the transaction. It essentially registers 'parent' as a part of the transaction, making sure that if the transaction aborts, the changes to 'parent' are rolled back as well.
+By adding 'TX_ADD(parent);', the transaction system ensures that the modification of 'parent' is properly recorded. If the transaction is successful, this change will be committed, and if the transaction aborts, it will be rolled back, maintaining the consistency of your persistent memory data structures.
+
+The second bug fix is to add 'TX_ADD(map);' before the line 'TX_FREE(D_RO(map)->root);'. This line tells the transaction system that it is intended to modify the 'map' pointer during the transaction. It essentially registers 'map' as a part of the transaction, making sure that if the transaction aborts, the changes to 'map' are rolled back as well.
+By adding 'TX_ADD(map);', the transaction system ensures that the modification of 'map' is properly recorded. If the transaction is successful, this change will be committed, and if the transaction aborts, it will be rolled back, maintaining the consistency of your persistent memory data structures.

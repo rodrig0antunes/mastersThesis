@@ -1,4 +1,5 @@
-### Corrected Persistent Memory Program
+### Correction
+
 ``` C
 /*
  * hm_tx_insert -- inserts specified value into the hashmap,

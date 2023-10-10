@@ -1,5 +1,6 @@
-### CORRECTED PERSISTENT MEMORY PROGRAM
-''' C
+### Correction of the INCORRECT PERSISTENT MEMORY PROGRAM
+
+``` C
 /*
  * hm_atomic_insert -- inserts specified value into the hashmap,
  * returns:
@@ -41,6 +42,7 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 	}
 		
 	// BUG //
+
 	PM_EQU(D_RW(hashmap)->count, (D_RW(hashmap)->count + 1));
 	pmemobj_persist(pop, &D_RW(hashmap)->count,
 			sizeof(D_RW(hashmap)->count));
@@ -52,6 +54,7 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 			sizeof(D_RW(hashmap)->count_dirty));
 		
 	// BUG //
+
 	PMTest_isPersistedBefore(&D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count), &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));
 
 	num++;
@@ -65,10 +68,13 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 
 	return 0;
 }
-'''.
+```
 
 ### Explanation
-In the corrected program, the two bug areas are left unchanged as they are not specified in the bug detection tool's explanation. The code within these areas should be reviewed and fixed accordingly.
-The corrected program ensures that the count value is updated and persisted correctly in persistent memory. The first bug area updates the count value and persists it using 'pmemobj_persist(pop, &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));'. 
-The second bug area sets the count_dirty value to 0 and persists it using 'pmemobj_persist(pop, &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));'.
-By making these changes, the count value and count_dirty value are updated and persisted correctly, ensuring data integrity in persistent memory.
+In the example, there are two bugs to repair, each delimited by the '// BUG //' expressions.
+
+1. The first bug is related to the order of operations. The value of 'D_RW(hashmap)->count' is updated, but it is not persisted before the check in 'PMTest_isPersistedBefore'. To fix this bug, the call to 'pmemobj_persist' is moved before the check in 'PMTest_isPersistedBefore'.
+
+2. The second bug is also related to the order of operations. The value of 'D_RW(hashmap)->count_dirty' is updated, but it is not persisted before the check in 'PMTest_isPersistedBefore'. To fix this bug, the call to 'pmemobj_persist' is moved before the check in 'PMTest_isPersistedBefore'.
+
+By making these changes, the updated values of 'D_RW(hashmap)->count' and 'D_RW(hashmap)->count_dirty' are correctly persisted before the checks in 'PMTest_isPersistedBefore'. This ensures that the data is durably stored in persistent memory and can be reliably checked for persistence.

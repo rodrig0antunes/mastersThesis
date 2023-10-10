@@ -1,5 +1,6 @@
-### Corrected Persistent Memory Program
-``` C
+## Correction
+
+''' C
 /*
  * rbtree_map_rotate -- (internal) performs a left/right rotation around a node
  */
@@ -13,20 +14,27 @@ rbtree_map_rotate(TOID(struct rbtree_map) map,
 	TX_ADD(node);
 	TX_ADD(child);
 
-	PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
+	TX_SET(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
 
 	if (!TOID_EQUALS(D_RO(child)->slots[c], s))
-		TX_SET(D_RW(child)->slots[c], parent, node);
+		TX_SET(D_RW(D_RO(child)->slots[c]), parent, node);
 		
-	// BUG //
-	
-	TX_SET(NODE_P(child), slots[NODE_LOCATION(node)], child);
+		// BUG //
+
+	TX_SET(NODE_P(child), NODE_P(node));
+
 	TX_SET(D_RW(NODE_P(node))->slots[NODE_LOCATION(node)], child);
 
 	TX_SET(D_RW(child)->slots[c], node);
 	TX_SET(D_RW(node)->parent, child);
+		
+		// BUG //
+		
 }
-```
+'''.
 
-### Explanation
-In the corrected code, the two lines marked as "// BUG //" have been replaced with the correct transactional macro "TX_SET" to ensure that the changes are part of the transaction. The corrected code sets the values of `NODE_P(child)` and `D_RW(NODE_P(node))->slots[NODE_LOCATION(node)]` to `child` within the transaction. This ensures that the changes are persistent and will be rolled back if the transaction aborts.
+## Explanation
+In the example, there are two bugs to repair, located in the areas of the code delimited by the '// BUG //' expressions. 
+In the correction of the example, the bug fixes are put in the areas of the code delimited by the '// BUG //' expressions.
+In the correction, the correct transaction-related macro, 'TX_SET', is used to set the values within the transaction.
+By using the correct macro, it is ensured that the value assignments are part of the transaction, guaranteeing that if the transaction aborts, the operations are rolled back.

@@ -1,4 +1,5 @@
 ### Corrected Persistent Memory Program
+
 ``` C
 /*
  * hm_tx_insert -- inserts specified value into the hashmap,
@@ -29,15 +30,18 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 	TX_BEGIN(pop) {
 
 		// BUG //
+			
 		TX_ADD_FIELD(D_RW(buckets)->bucket[h], next);
 		TX_ADD_FIELD(hashmap, count);
 		
 		TOID(struct entry) e = TX_NEW(struct entry);
 			
 		// BUG //
-		PM_EQU((D_RW(e)->key), (key));
-		PM_EQU((D_RW(e)->value), (value));
-		PM_EQU((D_RW(e)->next), (D_RO(buckets)->bucket[h]));
+		
+		PMTest_assign(&(D_RW(e)->key), sizeof(struct entry));
+		(D_RW(e)->key) = (key);
+		(D_RW(e)->value) = (value);
+		(D_RW(e)->next) = (D_RO(buckets)->bucket[h]);
 		
 		PM_EQU((D_RW(buckets)->bucket[h]), (e));
 		PM_EQU((D_RW(hashmap)->count), (D_RO(hashmap)->count+1));

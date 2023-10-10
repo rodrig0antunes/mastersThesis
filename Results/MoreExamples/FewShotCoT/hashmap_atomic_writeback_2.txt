@@ -1,4 +1,5 @@
-### Corrected Persistent Memory Program
+### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ``` C
 /*
  * hm_atomic_rebuild_finish -- finishes rebuild, assumes buckets_tmp is not null
@@ -40,11 +41,13 @@ hm_atomic_rebuild_finish(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap)
 	 * See recovery process in hm_init and TOID_IS_NULL macro definition.
 	 */
 			
-	// BUG //
+		// BUG //
+			
 	PM_EQU(D_RW(hashmap)->buckets_tmp.oid.off, 0);
 	pmemobj_persist(pop, &D_RW(hashmap)->buckets_tmp.oid.off,
 			sizeof(D_RW(hashmap)->buckets_tmp.oid.off));
-	// BUG //
+		
+		// BUG //
 
 	PMTest_isPersistent(&D_RW(hashmap)->buckets, sizeof(D_RW(hashmap)->buckets));
 	PMTest_isPersistent(&D_RW(hashmap)->buckets_tmp, sizeof(D_RW(hashmap)->buckets_tmp));
@@ -52,10 +55,7 @@ hm_atomic_rebuild_finish(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap)
 ```
 
 ### Explanation
-In the original code, there are two bugs indicated by the "// BUG //" comments. 
-
-1. The first bug is that the line `PM_EQU(D_RW(hashmap)->buckets_tmp.oid.off, 0);` is missing the `pmemobj_persist` call to ensure that the change is durably stored in persistent memory. To fix this, we need to add the line `pmemobj_persist(pop, &D_RW(hashmap)->buckets_tmp.oid.off, sizeof(D_RW(hashmap)->buckets_tmp.oid.off));` after setting the offset to 0.
-
-2. The second bug is that the line `pmemobj_persist(pop, &D_RW(hashmap)->buckets_tmp, sizeof(D_RW(hashmap)->buckets_tmp));` is commented out. This line is necessary to ensure that the changes made to `D_RW(hashmap)->buckets_tmp` are durably stored in persistent memory. To fix this, we need to uncomment the line.
-
-By making these corrections, the program will properly persist the changes made to `D_RW(hashmap)->buckets_tmp` and maintain data consistency in persistent memory.
+In the example, there are two bugs to repair, located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, after setting the offset manually, it needs to be included `pmemobj_persist(pop, &D_RW(hashmap)->buckets_tmp.oid.off, sizeof(D_RW(hashmap)->buckets_tmp.oid.off));` to ensure that the value of `D_RW(hashmap)->buckets_tmp.oid.off` is durably stored in the persistent memory pool. 
+By adding `pmemobj_persist(pop, &D_RW(hashmap)->buckets_tmp.oid.off, sizeof(D_RW(hashmap)->buckets_tmp.oid.off));`, it is guaranteed that the assignment to `D_RW(hashmap)->buckets_tmp.oid.off` is properly preserved, and the data remains consistent. This correction ensures data durability in persistent memory.

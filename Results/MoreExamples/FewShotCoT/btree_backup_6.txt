@@ -1,4 +1,5 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * btree_map_remove_from_node -- (internal) removes element from node
@@ -12,7 +13,7 @@ btree_map_remove_from_node(TOID(struct btree_map) map,
 		// BUG //
 		
 	if (TOID_IS_NULL(D_RO(node)->slots[0])) { /* leaf */
-		TX_ADD(node);
+
 		if (D_RO(node)->n == 1 || p == BTREE_ORDER - 2)
 			PM_EQU(D_RW(node)->items[p], EMPTY_ITEM);
 		
@@ -22,7 +23,7 @@ btree_map_remove_from_node(TOID(struct btree_map) map,
 			PM_MEMMOVE(&D_RW(node)->items[p],
 				&D_RW(node)->items[p + 1],
 				sizeof(struct tree_map_node_item) *
-				(D_RO(node)->n - p));
+				(D_RO(node)->n - p - 1));
 		}
 
 		PM_EQU(D_RW(node)->n, D_RO(node)->n - 1);
@@ -47,9 +48,10 @@ btree_map_remove_from_node(TOID(struct btree_map) map,
 '''.
 
 ## Explanation
-In the correction, two lines are added to fix the bug. 
-The first line 'TX_ADD(node);' is added before modifying the 'node' object. This line tells the transaction system that it is intended to modify the 'node' object during the transaction. It essentially registers 'node' as a part of the transaction, making sure that if the transaction aborts, the changes to 'node' are rolled back as well.
-By adding 'TX_ADD(node);', the transaction system ensures that the modifications to 'node' are properly recorded. 
-If the transaction is successful, these changes will be committed, and if the transaction aborts, they will be rolled back, maintaining the consistency of your persistent memory data structures.
-
-The second line 'PM_EQU(D_RW(node)->items[p], EMPTY_ITEM);' is added to set the 'items[p]' to 'EMPTY_ITEM' when the condition 'D_RO(node)->n == 1 || p == BTREE_ORDER - 2' is true. This ensures that the element at position 'p' in the 'node' is properly removed and marked as empty.
+In the example, there are two bugs to repair, located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, the first bug fix is to change the line 'PM_MEMMOVE(&D_RW(node)->items[p], &D_RW(node)->items[p + 1], sizeof(struct tree_map_node_item) * (D_RO(node)->n - p));' to 'PM_MEMMOVE(&D_RW(node)->items[p], &D_RW(node)->items[p + 1], sizeof(struct tree_map_node_item) * (D_RO(node)->n - p - 1));'. 
+This change fixes the bug where the number of elements being moved is incorrect. The correct number of elements to move is 'D_RO(node)->n - p - 1' because we want to move all the elements after the element being removed.
+The second bug fix is to add the line 'TX_ADD_FIELD(node, items[p]);' before assigning the value of 'D_RO(lm)->items[0]' to 'D_RW(node)->items[p]'. This line tells the transaction system that it is intended to modify the 'items[p]' field of the 'node' during the transaction. It essentially registers 'items[p]' as a part of the transaction, making sure that if the transaction aborts, the changes to 'items[p]' are rolled back as well.
+By adding 'TX_ADD_FIELD(node, items[p]);', the transaction system ensures that the assignment of the value from 'D_RO(lm)->items[0]' to 'D_RW(node)->items[p]' is properly recorded. 
+If the transaction is successful, this change will be committed, and if the transaction aborts, it will be rolled back, maintaining the consistency of your persistent memory data structures.

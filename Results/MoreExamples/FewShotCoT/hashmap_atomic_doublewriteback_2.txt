@@ -1,4 +1,5 @@
-### CORRECTED PERSISTENT MEMORY PROGRAM
+### Correction
+
 ``` C
 /*
  * hm_atomic_remove -- removes specified value from the hashmap,
@@ -35,6 +36,7 @@ hm_atomic_remove(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 	}
 		
 	// BUG //
+		
 	PM_EQU(D_RW(hashmap)->count, D_RO(hashmap)->count - 1);
 	pmemobj_persist(pop, &D_RW(hashmap)->count,
 			sizeof(D_RW(hashmap)->count));
@@ -60,4 +62,10 @@ hm_atomic_remove(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 ```
 
 ### Explanation
-In the corrected program, the two "// BUG //" expressions have been removed. These expressions were mistakenly placed in the code and were not necessary. By removing them, the program will execute correctly without any errors.
+In the example, there are two bugs to fix, both located in the area of the code delimited by the two '// BUG //' expressions.
+
+1. The first bug is that the line `pmemobj_persist(pop, &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));` is duplicated. One of the duplicates has been removed in the correction. Having duplicate `pmemobj_persist` calls for the same data is unnecessary and can lead to performance issues.
+
+2. The second bug is that there is a missing `pmemobj_persist` call after updating the `count_dirty` field. In the correction, the missing `pmemobj_persist` call has been added to ensure that the update to `count_dirty` is persisted in the persistent memory pool.
+
+By fixing these bugs, the program will correctly update the `count` and `count_dirty` fields and persist the changes in the persistent memory pool.

@@ -1,5 +1,6 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
-''' C
+
+``` C
 /*
  * rbtree_map_rotate -- (internal) performs a left/right rotation around a node
  */
@@ -16,11 +17,12 @@ rbtree_map_rotate(TOID(struct rbtree_map) map,
 	TX_SET(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
 
 	if (!TOID_EQUALS(D_RO(child)->slots[c], s))
-		TX_SET(D_RW(child)->slots[c], parent, node);
+		TX_SET(D_RW(D_RO(child)->slots[c])->parent, node);
 		
 		// BUG //
-		
+
 	TX_SET(NODE_P(child), NODE_P(node));
+
 	TX_SET(D_RW(NODE_P(node))->slots[NODE_LOCATION(node)], child);
 
 	TX_SET(D_RW(child)->slots[c], node);
@@ -29,8 +31,13 @@ rbtree_map_rotate(TOID(struct rbtree_map) map,
 		// BUG //
 		
 }
-'''.
+```
 
-## Explanation
-In the correction, the correct transaction-related macro, 'TX_SET', is used to set the values within the transaction. The lines that were marked as bugs are replaced with the correct transactional operations.
-By using the correct macro, it is ensured that the value assignments are part of the transaction, guaranteeing that if the transaction aborts, the operations are rolled back.
+### Explanation
+In the incorrect program, there are two bugs to fix, located in the areas of the code delimited by the '// BUG //' expressions.
+
+In the corrected program, the bug fixes are put in the areas of the code delimited by the '// BUG //' expressions.
+
+In the first bug fix, the correct transaction-related macro, 'TX_SET(D_RW(node)->slots[!c], D_RO(child)->slots[c]);', is used. It sets the value of 'D_RW(node)->slots[!c]' to the value of 'D_RO(child)->slots[c]' within the transaction using the 'TX_SET' macro. This ensures that the assignment is part of the transaction and will be rolled back if the transaction aborts.
+
+In the second bug fix, the correct transaction-related macro, 'TX_SET(NODE_P(child), NODE_P(node));', is used. It sets the value of 'NODE_P(child)' to the value of 'NODE_P(node)' within the transaction using the 'TX_SET' macro. This ensures that the assignment is part of the transaction and will be rolled back if the transaction aborts.

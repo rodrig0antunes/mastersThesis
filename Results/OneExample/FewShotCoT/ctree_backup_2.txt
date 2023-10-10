@@ -1,5 +1,6 @@
-### Corrected Persistent Memory Program
-``` C
+### CORRECTED PERSISTENT MEMORY PROGRAM
+
+''' C
 /*
  * ctree_map_remove -- removes key-value pair from the map
  */
@@ -29,28 +30,29 @@ ctree_map_remove(PMEMobjpool *pop, TOID(struct ctree_map) map, uint64_t key)
 		 * so it's swapped with the remaining node and then also freed.
 		 */
 		TX_BEGIN(pop) {
-			pmemobj_tx_add_range_direct(parent, sizeof(*parent));
+				
+		// BUG //
+
+			struct tree_map_entry *dest = parent;
 			TOID(struct tree_map_node) node;
 			TOID_ASSIGN(node, parent->slot);
-			pmemobj_tx_add_range_direct(D_RW(node)->entries, sizeof(struct tree_map_entry) * D_RO(node)->nentries);
-			PM_EQU(*parent, D_RW(node)->entries[D_RO(node)->entries[0].key == leaf->key]);
+			pmemobj_tx_add_range_direct(dest, sizeof(*dest));
+			*dest = D_RW(node)->entries[
+				D_RO(node)->entries[0].key == leaf->key];
+		
+		// BUG //
+
 			TX_FREE(node);
 		} TX_END
 	}
 
 	return ret;
 }
-```
+'''.
 
 ### Explanation
-In the correction, the code block between the `// BUG //` markers is modified. The following changes are made:
-
-1. The line `struct tree_map_entry *dest = parent;` is removed because it is not necessary.
-
-2. The line `// pmemobj_tx_add_range_direct(dest, sizeof(*dest));` is commented out because it is not needed.
-
-3. The line `PM_EQU(*dest, D_RW(node)->entries[D_RO(node)->entries[0].key == leaf->key]);` is replaced with `pmemobj_tx_add_range_direct(parent, sizeof(*parent));` to add the `parent` object to the transaction.
-
-4. The line `TX_FREE(node);` is kept as it is because it correctly frees the `node` object.
-
-By adding `pmemobj_tx_add_range_direct(parent, sizeof(*parent));`, the transaction system ensures that the modifications made to the `parent` object are properly recorded. If the transaction is successful, these changes will be committed, and if the transaction aborts, they will be rolled back, maintaining the consistency of the persistent memory data structures.
+In the example, there are two bugs to repair, located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, the line 'pmemobj_tx_add_range_direct(dest, sizeof(*dest));' is added before modifying the 'dest' pointer. This line tells the transaction system that it is intended to modify the 'dest' pointer during the transaction. It essentially registers 'dest' as a part of the transaction, making sure that if the transaction aborts, the changes to 'dest' are rolled back as well.
+By adding 'pmemobj_tx_add_range_direct(dest, sizeof(*dest));', the transaction system ensures that the assignment of the new value to 'dest' is properly recorded. 
+If the transaction is successful, this change will be committed, and if the transaction aborts, it will be rolled back, maintaining the consistency of your persistent memory data structures.

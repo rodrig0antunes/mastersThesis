@@ -1,5 +1,6 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
-''' C
+
+``` C
 /*
  * btree_map_find_dest_node -- (internal) finds a place to insert the new key at
  */
@@ -26,10 +27,13 @@ btree_map_find_dest_node(TOID(struct btree_map) map,
 			PM_EQU(D_RW(up)->slots[1], right);
 
 			// BUG //
+
 			TX_ADD_DIRECT(map);
 			PM_EQU(D_RW(map)->root, up);
 			n = up;
+
 			// BUG //
+
 		}
 	}
 
@@ -54,10 +58,13 @@ btree_map_find_dest_node(TOID(struct btree_map) map,
 	 */
 	return btree_map_find_dest_node(map, D_RO(n)->slots[i], n, key, p);
 }
-'''.
+```
 
 ### Explanation
-In the correction, a new line 'TX_ADD_DIRECT(map);' is added before modifying the 'root' field of the 'map' object. 
-This line tells the transaction system that it is intended to modify the 'map' object during the transaction. It essentially registers 'map' as a part of the transaction, making sure that if the transaction aborts, the changes to 'map' are rolled back as well.
-By adding 'TX_ADD_DIRECT(map);', the transaction system ensures that the assignment of the new root node 'up' to 'map' is properly recorded. 
-If the transaction is successful, this change will be committed, and if the transaction aborts, it will be rolled back, maintaining the consistency of your persistent memory data structures.
+In the given code, there are two bugs to fix, both located in the area of the code delimited by the two `// BUG //` expressions.
+
+In the first bug fix, a new line `TX_ADD_DIRECT(map);` is added before assigning the new root node `up` to `D_RW(map)->root`. This line tells the transaction system that it is intended to modify the `map` pointer during the transaction. By adding `TX_ADD_DIRECT(map);`, the transaction system ensures that the assignment of the new root node `up` to `D_RW(map)->root` is properly recorded.
+
+In the second bug fix, the line `PM_EQU(D_RW(map)->root, up);` is replaced with `PM_EQU(D_RW(map)->root, up);`. This line assigns the new root node `up` to `D_RW(map)->root`, which is the correct assignment.
+
+By making these bug fixes, the program ensures that the modifications to the `map` pointer and the assignment of the new root node are properly recorded in the transaction system. This ensures the consistency of the persistent memory data structures.

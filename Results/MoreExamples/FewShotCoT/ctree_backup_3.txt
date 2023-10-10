@@ -1,4 +1,5 @@
-### CORRECTED PERSISTENT MEMORY PROGRAM
+### Correction
+
 ''' C
 /*
  * ctree_map_insert -- inserts a new key-value pair into the map
@@ -22,6 +23,7 @@ ctree_map_insert(PMEMobjpool *pop, TOID(struct ctree_map) map,
 	TX_BEGIN(pop) {
 		
 		// BUG //
+
 		if (p->key == 0 || p->key == key) {
 			PM_EQU(*p, e);
 			pmemobj_tx_add_range_direct(p, sizeof(*p));
@@ -29,7 +31,9 @@ ctree_map_insert(PMEMobjpool *pop, TOID(struct ctree_map) map,
 			ctree_map_insert_leaf(&D_RW(map)->root, e,
 					find_crit_bit(p->key, key));
 		}
+
 		// BUG //
+
 	} TX_ONABORT {
 		ret = 1;
 	} TX_END
@@ -40,8 +44,9 @@ ctree_map_insert(PMEMobjpool *pop, TOID(struct ctree_map) map,
 }
 '''.
 
-## Explanation
-In the correction, the code block between the two '// BUG //' comments is moved inside the transaction block. 
-The transaction block is started with 'TX_BEGIN(pop)' and ended with 'TX_END'. 
-By moving the code block inside the transaction, the operations performed on the persistent memory are now part of the transaction. 
-This ensures that the changes made to the persistent memory are either committed or rolled back as a whole, maintaining the consistency of the data.
+### Explanation
+In the example, there are two bugs to repair, located in the areas of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fixes are put in the areas of the code delimited by the two '// BUG //' expressions.
+In the correction, the first bug fix is to move the closing brace of the 'if' statement to the correct position. The closing brace should be placed after the 'pmemobj_tx_add_range_direct(p, sizeof(*p));' line. This ensures that the transaction system properly records the modification of the 'p' pointer and its size.
+The second bug fix is to move the closing brace of the 'else' statement to the correct position. The closing brace should be placed before the '// BUG //' expression. This ensures that the transaction system properly records the modification of the 'map' pointer and its size.
+By making these changes, the transaction system will correctly record the modifications made to the persistent memory data structures, ensuring data consistency and durability.

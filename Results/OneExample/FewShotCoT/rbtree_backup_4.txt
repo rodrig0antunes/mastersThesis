@@ -1,4 +1,5 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * rbtree_map_insert_bst -- (internal) inserts a node in regular BST fashion
@@ -18,21 +19,25 @@ rbtree_map_insert_bst(TOID(struct rbtree_map) map, TOID(struct tree_map_node) n)
 		dst = &D_RW(*dst)->slots[D_RO(n)->key > D_RO(*dst)->key];
 	}
 	
-	TX_BEGIN(pop) {
-		TX_ADD_DIRECT(dst);
-		TX_ADD_DIRECT(n);
-		TX_SET(n, parent, parent);
-		PM_EQU(*dst, n);
-	} TX_END
+		// BUG //
+
+	TX_ADD_DIRECT(parent);
+	TX_ADD_DIRECT(*dst);
+	TX_ADD_DIRECT(n);
+	TX_SET(n, parent, parent);
+
+
+	PM_EQU(*dst, n);
+
+		// BUG //
 
 }
 '''.
 
 ### Explanation
-In the correction, the code is wrapped inside a transaction block using `TX_BEGIN` and `TX_END`. 
-Inside the transaction block, two new lines are added:
-1. `TX_ADD_DIRECT(dst);` - This line registers `dst` as a part of the transaction, ensuring that any changes made to `dst` are properly recorded. 
-2. `TX_ADD_DIRECT(n);` - This line registers `n` as a part of the transaction, ensuring that any changes made to `n` are properly recorded.
-
-By adding these lines, the transaction system ensures that the assignments of `parent` and `n` to their respective variables are properly recorded. 
+In the incorrect program, there are two bugs to fix, both located in the area of the code delimited by the two '// BUG //' expressions.
+In the corrected program, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, three new lines 'TX_ADD_DIRECT(parent);', 'TX_ADD_DIRECT(*dst);', and 'TX_ADD_DIRECT(n);' are added before setting the parent of the new node 'n'.
+These lines tell the transaction system that it is intended to modify the 'parent', '*dst', and 'n' variables during the transaction. They essentially register these variables as part of the transaction, making sure that if the transaction aborts, the changes to these variables are rolled back as well.
+By adding 'TX_ADD_DIRECT(parent);', 'TX_ADD_DIRECT(*dst);', and 'TX_ADD_DIRECT(n);', the transaction system ensures that the assignment of the parent of 'n' and the assignment of '*dst' are properly recorded.
 If the transaction is successful, these changes will be committed, and if the transaction aborts, they will be rolled back, maintaining the consistency of your persistent memory data structures.

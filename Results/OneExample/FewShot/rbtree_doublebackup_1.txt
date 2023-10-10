@@ -1,4 +1,5 @@
-### Corrected Persistent Memory Program
+### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ``` C
 /*
  * rbtree_map_rotate -- (internal) performs a left/right rotation around a node

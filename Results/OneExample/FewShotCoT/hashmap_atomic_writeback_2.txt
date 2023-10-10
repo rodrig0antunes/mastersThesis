@@ -1,4 +1,5 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ``` C
 /*
  * hm_atomic_rebuild_finish -- finishes rebuild, assumes buckets_tmp is not null
@@ -40,11 +41,13 @@ hm_atomic_rebuild_finish(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap)
 	 * See recovery process in hm_init and TOID_IS_NULL macro definition.
 	 */
 			
-	// BUG //
+		// BUG //
+			
 	PM_EQU(D_RW(hashmap)->buckets_tmp.oid.off, 0);
 	pmemobj_persist(pop, &D_RW(hashmap)->buckets_tmp.oid.off,
 			sizeof(D_RW(hashmap)->buckets_tmp.oid.off));
-	// BUG //
+		
+		// BUG //
 
 	PMTest_isPersistent(&D_RW(hashmap)->buckets, sizeof(D_RW(hashmap)->buckets));
 	PMTest_isPersistent(&D_RW(hashmap)->buckets_tmp, sizeof(D_RW(hashmap)->buckets_tmp));
@@ -52,8 +55,10 @@ hm_atomic_rebuild_finish(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap)
 ```
 
 ### Explanation
-In the original code, there are two bugs indicated by the comments "// BUG //". The first bug is that the assignment `PM_EQU(D_RW(hashmap)->buckets_tmp.oid.off, 0);` is missing a call to `pmemobj_persist()` to ensure that the change is durably stored in the persistent memory pool. The corrected code adds the missing `pmemobj_persist()` call after the assignment.
+In the given code, there are two bugs to fix, both located in the area of the code delimited by the two '// BUG //' expressions.
 
-The second bug is that the call to `pmemobj_persist()` for `D_RW(hashmap)->buckets_tmp` is commented out. This means that the changes made to `D_RW(hashmap)->buckets_tmp` are not being durably stored in the persistent memory pool. The corrected code removes the comment and adds the `pmemobj_persist()` call for `D_RW(hashmap)->buckets_tmp`.
+1. The first bug is fixed by adding the line `pmemobj_persist(pop, &D_RW(hashmap)->buckets_tmp.oid.off, sizeof(D_RW(hashmap)->buckets_tmp.oid.off));` after setting the offset to 0. This ensures that the change to the offset value is durably stored in the persistent memory pool.
 
-By adding the missing `pmemobj_persist()` calls, the corrected code ensures that the changes made to `D_RW(hashmap)->buckets_tmp` and `D_RW(hashmap)->buckets_tmp.oid.off` are durably stored in the persistent memory pool, preventing data loss in case of a crash.
+2. The second bug is fixed by adding the line `pmemobj_persist(pop, &D_RW(hashmap)->buckets_tmp.oid.off, sizeof(D_RW(hashmap)->buckets_tmp.oid.off));` after setting the offset to 0. This ensures that the change to the offset value is durably stored in the persistent memory pool.
+
+By adding the `pmemobj_persist` function after modifying the offset value, we ensure that the changes are durably stored in the persistent memory pool and will persist across program restarts.

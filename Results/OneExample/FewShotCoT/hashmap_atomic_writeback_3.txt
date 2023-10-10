@@ -1,5 +1,6 @@
-## Correction
-''' C
+### CORRECTED PERSISTENT MEMORY PROGRAM
+
+``` C
 /*
  * hm_atomic_insert -- inserts specified value into the hashmap,
  * returns:
@@ -23,12 +24,12 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 		num++;
 	}
 	
-	// BUG //
-	PM_EQU(D_RW(hashmap)->count_dirty, 1);
-	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
-			sizeof(D_RW(hashmap)->count_dirty));
-	// BUG //
-		
+		// BUG //
+
+	D_RW(hashmap)->count_dirty = 1;
+	
+		// BUG //
+
 	struct entry_args args = {
 		.key = key,
 		.value = value,
@@ -42,14 +43,14 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 		return -1;
 	}
 
-	PM_EQU(D_RW(hashmap)->count, (D_RW(hashmap)->count + 1));
+	D_RW(hashmap)->count = (D_RW(hashmap)->count + 1);
 	pmemobj_persist(pop, &D_RW(hashmap)->count,
 			sizeof(D_RW(hashmap)->count));
 
 	PMTest_isPersistedBefore(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty), &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));
 
 
-	PM_EQU(D_RW(hashmap)->count_dirty, 0);
+	D_RW(hashmap)->count_dirty = 0;
 	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
 			sizeof(D_RW(hashmap)->count_dirty));
 
@@ -67,7 +68,10 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 
 	return 0;
 }
-'''.
+```
 
-## Explanation
-In the correction, the code that was commented out is uncommented to fix the bug. The line 'pmemobj_persist(pop, &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));' is added to ensure that the value of 'D_RW(hashmap)->count_dirty' is durably stored in the persistent memory pool. By adding this line, it is guaranteed that the assignment to 'D_RW(hashmap)->count_dirty' is properly preserved, and the data remains consistent. This correction ensures data durability in persistent memory.
+### Explanation
+In the incorrect program, the bug to repair is located in the area of the code delimited by the two '// BUG //' expressions. 
+In the corrected program, the bug fix is put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, the assignment 'PM_EQU(D_RW(hashmap)->count_dirty, 1);' is replaced with 'D_RW(hashmap)->count_dirty = 1;'. This change ensures that the value of 'count_dirty' is properly updated in the persistent memory pool.
+By making this correction, the program will correctly update the 'count_dirty' field in the persistent memory pool.
