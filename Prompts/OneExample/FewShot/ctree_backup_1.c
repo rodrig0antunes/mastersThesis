@@ -87,7 +87,6 @@ ctree_map_remove(PMEMobjpool *pop, TOID(struct ctree_map) map, uint64_t key)
 		TX_BEGIN(pop) {
 			pmemobj_tx_add_range_direct(leaf, sizeof(*leaf));
 			PM_EQU(leaf->key, 0);
-			// PM_EQU(leaf->slot, OID_NULL);
 		} TX_END
 		PM_EQU(leaf->slot, OID_NULL);
 		

@@ -101,7 +101,6 @@ btree_map_create_split_node(TOID(struct tree_map_node) node,
 
 	TOID(struct tree_map_node) right = TX_ZNEW(struct tree_map_node);
 	
-	// TX_ADD(node);
 	
 	int c = (BTREE_ORDER / 2);
 	*m = D_RO(node)->items[c - 1]; /* select median item */

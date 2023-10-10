@@ -123,8 +123,6 @@ hm_atomic_rebuild_finish(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap)
 		// BUG //
 			
 	PM_EQU(D_RW(hashmap)->buckets_tmp.oid.off, 0);
-	// pmemobj_persist(pop, &D_RW(hashmap)->buckets_tmp,
-	// 		sizeof(D_RW(hashmap)->buckets_tmp));
 		
 		// BUG //
 

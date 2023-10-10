@@ -144,7 +144,7 @@ btree_map_rotate_right(TOID(struct tree_map_node) rsb,
 		// BUG //
 		
 	/* the first element of the right sibling is the new separator */
-	// TX_ADD_FIELD(parent, items[p]);
+	
 	PM_EQU(D_RW(parent)->items[p], D_RO(rsb)->items[0]);
 		
 		// BUG //

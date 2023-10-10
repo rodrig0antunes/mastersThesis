@@ -157,7 +157,7 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 
 	int ret = 0;
 	TX_BEGIN(pop) {
-		// TX_ADD_FIELD(D_RO(hashmap)->buckets, bucket[h]);
+
 		//TX_ADD_FIELD(buckets, bucket[h]);
 		TX_ADD_FIELD(hashmap, count);
 

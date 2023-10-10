@@ -104,7 +104,6 @@ hm_tx_remove(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint64_t key)
 			TX_ADD_FIELD(D_RO(hashmap)->buckets, bucket[h]);
 		else
 			TX_ADD_FIELD(prev, next);
-		// TX_ADD_FIELD(hashmap, count);
 		
 		// BUG //
 

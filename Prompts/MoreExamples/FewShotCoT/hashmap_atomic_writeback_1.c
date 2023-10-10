@@ -171,8 +171,6 @@ hm_atomic_rebuild_finish(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap)
 	POBJ_FREE(&D_RO(hashmap)->buckets);
 	
 	PM_EQU(D_RW(hashmap)->buckets, D_RO(hashmap)->buckets_tmp);
-	// pmemobj_persist(pop, &D_RW(hashmap)->buckets,
-	// 		sizeof(D_RW(hashmap)->buckets));
 	
 		// BUG //
 

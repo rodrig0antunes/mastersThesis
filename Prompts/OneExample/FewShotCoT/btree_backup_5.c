@@ -100,7 +100,6 @@ btree_map_merge(TOID(struct btree_map) map, TOID(struct tree_map_node) rn,
 
 	TX_FREE(rn); /* right node is now empty */
 
-	// TX_ADD(parent);
 	PM_EQU(D_RW(parent)->n, D_RO(parent)->n - 1);
 		
 		// BUG //

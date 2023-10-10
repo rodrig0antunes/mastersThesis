@@ -133,8 +133,6 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 		// BUG //
 
 	PM_EQU(D_RW(hashmap)->count_dirty, 0);
-	// pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
-	// 		sizeof(D_RW(hashmap)->count_dirty));
 		
 		// BUG //
 

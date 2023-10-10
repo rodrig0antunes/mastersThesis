@@ -175,7 +175,6 @@ ctree_map_remove(PMEMobjpool *pop, TOID(struct ctree_map) map, uint64_t key)
 			struct tree_map_entry *dest = parent;
 			TOID(struct tree_map_node) node;
 			TOID_ASSIGN(node, parent->slot);
-			// pmemobj_tx_add_range_direct(dest, sizeof(*dest));
 			PM_EQU(*dest, D_RW(node)->entries[
 				D_RO(node)->entries[0].key == leaf->key]);
 		

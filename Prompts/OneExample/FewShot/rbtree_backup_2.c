@@ -80,7 +80,7 @@ rbtree_map_rotate(TOID(struct rbtree_map) map,
 		// BUG //
 
 	TX_ADD(node);
-	// TX_ADD(child);
+
 	
 	PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
 		

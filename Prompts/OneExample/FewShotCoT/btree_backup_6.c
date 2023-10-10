@@ -85,7 +85,7 @@ btree_map_remove_from_node(TOID(struct btree_map) map,
 		// BUG //
 		
 	if (TOID_IS_NULL(D_RO(node)->slots[0])) { /* leaf */
-		// TX_ADD(node);
+
 		if (D_RO(node)->n == 1 || p == BTREE_ORDER - 2)
 			PM_EQU(D_RW(node)->items[p], EMPTY_ITEM);
 		
