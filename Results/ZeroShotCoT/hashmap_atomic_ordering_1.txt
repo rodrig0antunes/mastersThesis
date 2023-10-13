@@ -1,8 +1,6 @@
-To resolve the bug, we need to fix the code within the "// BUG //" section. 
+To resolve the bug, we need to ensure that the changes made to the `count_dirty` and `count` fields of the `hashmap` structure are persisted correctly. Currently, the changes are being persisted using the `pmemobj_persist` function, but the bug detection tool has identified that the persistence is not happening correctly.
 
-Looking at the code, it seems that the bug is related to the function `PMTest_isPersistedBefore()`. This function is not a standard function from the PMDK library, so it is likely a custom function implemented by the user or a third-party library.
-
-To fix the bug, we need to replace the call to `PMTest_isPersistedBefore()` with the appropriate code that ensures the persistence of the data.
+To fix this, we can use the `PM_EQU` macro provided by the PMDK library to persist the changes. The `PM_EQU` macro persists the value of a variable and ensures that the persistence is ordered correctly with respect to other variables.
 
 Here's the corrected code:
 
@@ -47,14 +45,7 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 
 	PM_EQU(D_RW(hashmap)->count, (D_RW(hashmap)->count + 1));
 
-	pmemobj_persist(pop, &D_RW(hashmap)->count,
-			sizeof(D_RW(hashmap)->count));
-	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
-			sizeof(D_RW(hashmap)->count_dirty));
-
 	PM_EQU(D_RW(hashmap)->count_dirty, 0);
-	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
-			sizeof(D_RW(hashmap)->count_dirty));
 
 	num++;
 	if (num > MAX_HASHSET_THRESHOLD ||
@@ -62,15 +53,8 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 			D_RO(hashmap)->count > 2 * D_RO(buckets)->nbuckets))
 		hm_atomic_rebuild(pop, hashmap, D_RW(buckets)->nbuckets * 2);
 
-	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
-			sizeof(D_RW(hashmap)->count_dirty));
-	pmemobj_persist(pop, &D_RW(hashmap)->count,
-			sizeof(D_RW(hashmap)->count));
-
 	return 0;
 }
 ```
 
-In the corrected code, I have removed the calls to `PMTest_isPersistedBefore()` and added calls to `pmemobj_persist()` to ensure the persistence of the data before and after modifying the `count_dirty` and `count` fields.
-
-Please note that the exact fix may depend on the specific requirements of your application and the behavior of the custom `PMTest_isPersistedBefore()` function. This fix assumes that the goal is to ensure the persistence of the `count_dirty` and `count` fields.
+I have removed the lines that were causing the bug and replaced them with the `PM_EQU` macro to ensure correct persistence.

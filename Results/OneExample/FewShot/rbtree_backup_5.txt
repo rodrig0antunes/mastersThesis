@@ -17,11 +17,12 @@ rbtree_map_repair_branch(TOID(struct rbtree_map) map,
 	TX_ADD_DIRECT(D_RW(NODE_PARENT_AT(n, !c))->color);
 	TX_ADD_DIRECT(D_RW(NODE_P(n))->color);
 	TX_ADD_DIRECT(D_RW(n)->parent);
-	TX_ADD_DIRECT(D_RW(n)->parent)->color;
 	TX_ADD_DIRECT(D_RW(n)->parent)->slots[!c];
-	TX_ADD_DIRECT(D_RW(n)->parent)->slots[!c])->color;
 	TX_ADD_DIRECT(D_RW(n)->parent)->slots[c];
-	TX_ADD_DIRECT(D_RW(n)->parent)->slots[c])->color;
+	TX_ADD_DIRECT(D_RW(D_RW(n)->parent)->slots[!c])->color;
+	TX_ADD_DIRECT(D_RW(D_RW(n)->parent)->slots[c])->color;
+	TX_ADD_DIRECT(D_RW(D_RW(n)->parent)->slots[RB_RIGHT])->color;
+	TX_ADD_DIRECT(D_RW(D_RW(n)->parent)->slots[RB_LEFT])->color;
 
 	TOID(struct tree_map_node) sb = NODE_PARENT_AT(n, !c); /* sibling */
 	if (D_RO(sb)->color == COLOR_RED) {

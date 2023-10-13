@@ -101,15 +101,15 @@ rbtree_map_remove(PMEMobjpool *pop, TOID(struct rbtree_map) map, uint64_t key)
 '''.
 
 ### Explanation
-In the incorrect persistent memory program, there are three bugs to fix, each one marked with a '// BUG#X //' comment.
+In the incorrect program, there are three bugs to fix, each one marked with a '// BUG#X //' comment.
 
 #### Bug #1
-In the first bug, the line 'PM_EQU(NODE_P(child), NODE_P(node));' is missing the 'TX_ADD(NODE_P(child));' statement before it. This statement is necessary to add 'NODE_P(child)' to the transaction, ensuring that any changes made to it are persistent.
+In the first bug, the line 'PM_EQU(NODE_P(child), NODE_P(node));' is missing a 'TX_ADD(NODE_P(child));' statement before it. This statement is necessary to indicate that 'NODE_P(child)' is part of the transaction.
 
 #### Bug #2
-In the second bug, the line 'PM_EQU(NODE_PARENT_AT(y, NODE_LOCATION(y)), x);' is missing the 'TX_ADD(NODE_P(y));' statement before it. This statement is necessary to add 'NODE_P(y)' to the transaction, ensuring that any changes made to it are persistent.
+In the second bug, the line 'PM_EQU(NODE_PARENT_AT(y, NODE_LOCATION(y)), x);' is missing a 'TX_ADD(NODE_P(y));' statement before it. This statement is necessary to indicate that 'NODE_P(y)' is part of the transaction.
 
 #### Bug #3
-In the third bug, the line 'PM_EQU(NODE_PARENT_AT(n, NODE_LOCATION(n)), y);' is missing the 'TX_ADD(NODE_P(n));' statement before it. This statement is necessary to add 'NODE_P(n)' to the transaction, ensuring that any changes made to it are persistent.
+In the third bug, the line 'PM_EQU(NODE_PARENT_AT(n, NODE_LOCATION(n)), y);' is missing a 'TX_ADD(NODE_P(n));' statement before it. This statement is necessary to indicate that 'NODE_P(n)' is part of the transaction.
 
-The corrected program includes the missing 'TX_ADD()' statements in the appropriate places to fix these bugs.
+The corrected program includes the missing 'TX_ADD' statements to fix these bugs and ensure that all the necessary objects are part of the transaction.

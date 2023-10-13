@@ -4,15 +4,15 @@ The first bug is located at the line:
 ```C
 TOID(struct tree_map_node) right = TX_ZNEW(struct tree_map_node);
 ```
-The issue here is that the `TX_ZNEW` macro is used to allocate a new object in the transactional memory pool. However, the `right` variable is not assigned to the allocated object. To fix this, we need to assign the allocated object to the `right` variable. 
+The issue here is that the `TX_ZNEW` macro is used, which is incorrect. Instead, we should use the `TX_NEW` macro to allocate memory for the new node. 
 
 The second bug is located at the line:
 ```C
 PM_EQU(D_RW(node)->items[c - 1], EMPTY_ITEM);
 ```
-The issue here is that the `PM_EQU` macro is used to assign the value of `EMPTY_ITEM` to `D_RW(node)->items[c - 1]`. However, the correct syntax for assignment is `=`, not `PM_EQU`. To fix this, we need to replace `PM_EQU` with `=`.
+The issue here is that the `PM_EQU` macro is used, which is incorrect. Instead, we should use the `D_RW` macro to access the writable version of the persistent memory object and assign the `EMPTY_ITEM` value to it.
 
-Now, let's correct the code and resolve the bugs:
+Now, let's provide the corrected version of the code:
 
 ```C
 /*
@@ -23,33 +23,29 @@ btree_map_create_split_node(TOID(struct tree_map_node) node,
 	struct tree_map_node_item *m)
 {
 
-		// BUG //
-
-	TOID(struct tree_map_node) right = TX_ZNEW(struct tree_map_node);
-	
+	// BUG //
+	TOID(struct tree_map_node) right = TX_NEW(struct tree_map_node, struct tree_map_node);
 	
 	int c = (BTREE_ORDER / 2);
 	*m = D_RO(node)->items[c - 1]; /* select median item */
 		
-		// BUG //
-
+	// BUG //
 	D_RW(node)->items[c - 1] = EMPTY_ITEM;
 
 	/* move everything right side of median to the new node */
 	for (int i = c; i < BTREE_ORDER; ++i) {
 		if (i != BTREE_ORDER - 1) {
-			PM_EQU(D_RW(right)->items[D_RW(right)->n],
-				D_RO(node)->items[i]);
-			PM_EQU(D_RW(right)->n, D_RO(right)->n + 1);
-			PM_EQU(D_RW(node)->items[i], EMPTY_ITEM);
+			D_RW(right)->items[D_RW(right)->n] = D_RO(node)->items[i];
+			D_RW(right)->n = D_RO(right)->n + 1;
+			D_RW(node)->items[i] = EMPTY_ITEM;
 		}
-		PM_EQU(D_RW(right)->slots[i - c], D_RO(node)->slots[i]);
-		PM_EQU(D_RW(node)->slots[i], TOID_NULL(struct tree_map_node));
+		D_RW(right)->slots[i - c] = D_RO(node)->slots[i];
+		D_RW(node)->slots[i] = TOID_NULL(struct tree_map_node);
 	}
-	PM_EQU(D_RW(node)->n, c - 1);
+	D_RW(node)->n = c - 1;
 
 	return right;
 }
 ```
 
-Now the bugs have been resolved. The first bug is fixed by assigning the allocated object to the `right` variable. The second bug is fixed by using the assignment operator `=` instead of the `PM_EQU` macro.
+Please note that the corrected code assumes that the `EMPTY_ITEM` is a valid value for the `struct tree_map_node_item` type. If `EMPTY_ITEM` is not defined or not appropriate for the type, you may need to adjust the code accordingly.

@@ -26,6 +26,6 @@ rbtree_map_rotate(TOID(struct rbtree_map) map,
 		TX_SET(NODE_P(node), slots[NODE_LOCATION(node)], child);
 		PM_EQU(D_RW(child)->slots[c], node);
 		PM_EQU(D_RW(node)->parent, child);
-	} TX_END
+	} TX_END;
 }
 ```

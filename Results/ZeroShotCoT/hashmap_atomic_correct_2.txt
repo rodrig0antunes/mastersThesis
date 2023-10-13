@@ -68,4 +68,4 @@ hm_atomic_remove(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 }
 ```
 
-Now the code should work correctly without any bugs.
+Now the code should be free of bugs and should work as expected.

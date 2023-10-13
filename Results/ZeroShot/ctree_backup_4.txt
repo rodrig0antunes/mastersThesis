@@ -41,5 +41,7 @@ ctree_map_insert_leaf(struct tree_map_entry *p,
 	pmemobj_tx_add_range_direct(p, sizeof(*p));
 	
 	// BUG //
+	
+	pmemobj_tx_add_range_direct(new_node, sizeof(*new_node));
 }
 ```

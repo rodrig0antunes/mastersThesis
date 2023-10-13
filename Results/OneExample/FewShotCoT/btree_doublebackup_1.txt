@@ -31,6 +31,6 @@ btree_map_insert_node(TOID(struct tree_map_node) node, int p,
 ### Explanation
 In the example, there are two bugs to repair, both located in the area of the code delimited by the two '// BUG //' expressions. 
 In the correction of the example, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
-In the correction, the 'TX_ADD(node);' call is added after the first 'PM_MEMMOVE' call. This is necessary to ensure that the modifications made by the 'PM_MEMMOVE' call are included in the transaction.
-Similarly, the 'TX_ADD(node);' call is added after the 'btree_map_insert_item_at' call to include the modifications made by that function in the transaction.
-By adding the 'TX_ADD(node);' calls in the appropriate places, the modifications made to the 'node' object are correctly included in the transaction.
+In the correction, the 'TX_ADD(node);' call is added after the first 'PM_MEMMOVE' statement. This is necessary to ensure that the modifications made by the 'PM_MEMMOVE' are included in the transaction.
+Similarly, the 'TX_ADD(node);' call is added after the last line of code to ensure that the modifications made by the 'btree_map_insert_item_at' function are included in the transaction.
+By adding the 'TX_ADD(node);' calls in the appropriate places, the modifications made to the 'node' object are correctly included in the transaction, ensuring the durability of the changes.

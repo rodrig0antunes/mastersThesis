@@ -16,14 +16,11 @@ rbtree_map_rotate(TOID(struct rbtree_map) map,
 
 	PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
 
-	if (!TOID_EQUALS(D_RO(child)->slots[c], s)) {
-		TX_ADD(D_RW(child)->slots[c]);
+	if (!TOID_EQUALS(D_RO(child)->slots[c], s))
 		TX_SET(D_RW(child)->slots[c], parent, node);
-	}
-
+	
 	PM_EQU(NODE_P(child), NODE_P(node));
 
-	TX_ADD(NODE_P(node));
 	TX_SET(NODE_P(node), slots[NODE_LOCATION(node)], child);
 
 	PM_EQU(D_RW(child)->slots[c], node);

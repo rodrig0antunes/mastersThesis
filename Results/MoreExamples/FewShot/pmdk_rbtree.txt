@@ -1,6 +1,6 @@
-### Correction
+### Corrected Persistent Memory Program
 
-''' C
+``` C
 /*
  * rbtree_map_rotate -- (internal) performs a left/right rotation around a node
  */
@@ -98,4 +98,4 @@ rbtree_map_remove(PMEMobjpool *pop, TOID(struct rbtree_map) map, uint64_t key)
 
 	return ret;
 }
-'''.
+```

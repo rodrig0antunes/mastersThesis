@@ -40,7 +40,7 @@ btree_map_rotate_right(TOID(struct tree_map_node) rsb,
 ### Explanation
 In the incorrect program, there are two bugs located in the area of the code delimited by the two '// BUG //' expressions.
 In the corrected program, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
-In the correction, the lines 'TX_ADD_FIELD(parent, items[p]);' and 'TX_ADD_FIELD(rsb, n);' are added before modifying the values of 'parent->items[p]' and 'rsb->n' respectively.
-These lines tell the transaction system that it is intended to modify the corresponding fields during the transaction. It essentially registers the fields as a part of the transaction, making sure that if the transaction aborts, the changes to the fields are rolled back as well.
-By adding 'TX_ADD_FIELD(parent, items[p]);' and 'TX_ADD_FIELD(rsb, n);', the transaction system ensures that the modifications to 'parent->items[p]' and 'rsb->n' are properly recorded.
+In the correction, the lines 'TX_ADD_FIELD(parent, items[p]);' and 'TX_ADD_FIELD(node, slots[D_RO(node)->n]);' are added before modifying the fields 'items[p]' and 'slots[D_RO(node)->n]' respectively.
+These lines tell the transaction system that it is intended to modify the specified fields during the transaction. It essentially registers the fields as a part of the transaction, making sure that if the transaction aborts, the changes to the fields are rolled back as well.
+By adding 'TX_ADD_FIELD(parent, items[p]);' and 'TX_ADD_FIELD(node, slots[D_RO(node)->n]);', the transaction system ensures that the modifications to 'parent->items[p]' and 'node->slots[D_RO(node)->n]' are properly recorded.
 If the transaction is successful, these changes will be committed, and if the transaction aborts, they will be rolled back, maintaining the consistency of your persistent memory data structures.

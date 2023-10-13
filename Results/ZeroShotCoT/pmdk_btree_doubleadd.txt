@@ -2,9 +2,9 @@ The bug is located in the code segment delimited by the expression '// BUG //'. 
 
 The bug is that the variable 'keys' is not defined in the code. It seems that 'keys' is supposed to be an array of keys used for removing items from the map. However, it is not defined anywhere in the code.
 
-To fix this bug, we need to define the 'keys' array and initialize it with the appropriate values. We can define the 'keys' array as an array of integers and initialize it with some random values.
+To fix this bug, we need to define the 'keys' array and initialize it with the appropriate values. We can define the 'keys' array before the loop where the items are removed from the map.
 
-Here's the corrected code:
+Here is the corrected code:
 
 ``` C
 int main(int argc, const char *argv[]) {
@@ -125,14 +125,19 @@ int main(int argc, const char *argv[]) {
 	/* count the items */
 	map_foreach(mapc, D_RW(root)->map, get_keys, NULL);
 
-	int keys[nkeys]; // Define the 'keys' array
-
 	for (int i = 0; i < nkeys; i++) {
 		metadataVectorPtr[i] = C_createMetadataVector();
 	}
 
 	gettimeofday(&tv_start, 0);
 	/* remove the items without outer transaction */
+
+	// Define and initialize the 'keys' array
+	int keys[nkeys];
+	for (int i = 0; i < nkeys; i++) {
+		keys[i] = i;
+	}
+
 	for (int i = 0; i < nkeys; ++i) {
 		metadataPtr = metadataVectorPtr[i];
 		PMTest_START;
@@ -156,4 +161,27 @@ int main(int argc, const char *argv[]) {
 		C_execVeri(p, metadataPtr);
 
 		assert(!OID_IS_NULL(item));
-		if(!OID_INSTANCEOF(item, struct
+		if(!OID_INSTANCEOF(item, struct store_item)) {
+			printf("%lu, %lu\n", TOID_TYPE_NUM(struct store_item), pmemobj_type_num(item));
+		}
+		assert(OID_INSTANCEOF(item, struct store_item));
+
+	}
+	
+	gettimeofday(&tv_end, 0);
+
+	C_getVeri(p, (void *)(0));
+	for (int i = 0; i < nkeys; i++) {
+		C_deleteMetadataVector(metadataVectorPtr[i]);
+	}
+
+	printf("delete time=%lu us\n", 1000000 * (tv_end.tv_sec - tv_start.tv_sec) + 
+		(tv_end.tv_usec - tv_start.tv_usec));
+	
+	C_deleteVeriInstance(p);
+
+	uint64_t old_nkeys = nkeys;
+
+	/* tree should be empty */
+	map_foreach(mapc, D_RW(root)->map, dec_keys, NULL);
+	assert(old

@@ -74,7 +74,7 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 ### Explanation
 In the incorrect program, there are two bugs to fix, both located in the area of the code delimited by the two '// BUG //' expressions.
 In the corrected program, the bug fixes are put in the areas of the code delimited by the two '// BUG //' expressions.
-In the first bug fix, the order of operations is changed. First, the value of 'D_RW(hashmap)->count' is updated and then the 'pmemobj_persist' function is called to ensure that the updated value is correctly persisted in persistent memory.
+In the first bug fix, the order of operations is changed. First, the value of 'D_RW(hashmap)->count' is updated, and then 'pmemobj_persist' is called to ensure that the updated value is correctly persisted in persistent memory.
 By changing the order, it is ensured that the correct persistency of data to persistent memory. This guarantees that the new value is stored safely in the persistent memory pool.
-In the second bug fix, the order of operations is also changed. First, the value of 'D_RW(hashmap)->count_dirty' is updated and then the 'pmemobj_persist' function is called to ensure that the updated value is correctly persisted in persistent memory.
-By changing the order, it is ensured that the correct persistency of data to persistent memory. This guarantees that the new value is stored safely in the persistent memory pool.
+In the second bug fix, the order of operations is also changed. First, 'pmemobj_persist' is called to ensure that the updated value of 'D_RW(hashmap)->count_dirty' is correctly persisted in persistent memory, and then the value of 'D_RW(hashmap)->count_dirty' is updated.
+Again, by changing the order, it is ensured that the correct persistency of data to persistent memory. This guarantees that the new value is stored safely in the persistent memory pool.

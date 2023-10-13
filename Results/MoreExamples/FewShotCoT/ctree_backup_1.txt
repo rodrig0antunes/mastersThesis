@@ -56,4 +56,4 @@ In the example, there are two bugs to repair, located in the areas of the code d
 In the correction of the example, the bug fixes are put in the areas of the code delimited by the two '// BUG //' expressions.
 In the first bug fix, the line 'PM_EQU(leaf->key, 0);' is replaced with 'leaf->key = 0;'. This change correctly assigns the value 0 to the 'key' field of the 'leaf' struct.
 In the second bug fix, the line 'PM_EQU(leaf->slot, OID_NULL);' is replaced with 'leaf->slot = OID_NULL;'. This change correctly assigns the value 'OID_NULL' to the 'slot' field of the 'leaf' struct.
-These bug fixes ensure that the modifications made to the 'leaf' struct are properly recorded and persisted in the persistent memory pool.
+These bug fixes ensure that the modifications to the 'leaf' struct are properly recorded and persisted in the persistent memory pool.

@@ -37,4 +37,4 @@ btree_map_create_split_node(TOID(struct tree_map_node) node,
 }
 ```
 
-In the corrected program, I added the `pop` variable to obtain the PMEMobjpool pointer from the `node` object. This is necessary to correctly use the `PM_EQU` macro. I also added the `pop` parameter to all the `PM_EQU` calls to specify the PMEMobjpool pointer.
+In the corrected program, I added the `pop` variable to store the PMEMobjpool pointer. This pointer is used as an argument in the `PM_EQU` macro to specify the pool where the persistent memory objects are located. This ensures that the correct pool is used for the operations on the persistent memory objects.

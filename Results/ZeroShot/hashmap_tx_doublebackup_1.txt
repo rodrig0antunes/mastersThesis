@@ -41,8 +41,8 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 		(D_RW(e)->value) = value;
 		(D_RW(e)->next) = D_RO(buckets)->bucket[h];
 		
-		PM_EQU((D_RW(buckets)->bucket[h]), e);
-		PM_EQU((D_RW(hashmap)->count), D_RO(hashmap)->count+1);
+		(D_RW(buckets)->bucket[h]) = e;
+		(D_RW(hashmap)->count)++;
 		num++;
 	} TX_ONABORT {
 		fprintf(stderr, "transaction aborted: %s\n",
@@ -61,9 +61,16 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 	return 0;
 }
 ```
+The corrected code includes the following changes:
 
-In the corrected program, the bugs have been fixed as follows:
+1. In the first bug, the `TX_ADD_FIELD` macro is used to add the `bucket[h]` field of the `buckets` object to the transaction. This ensures that any modifications to this field are persistent. 
 
-1. The line `TX_ADD_FIELD(hashmap, count);` has been removed because it is redundant.
-2. The line `PMTest_assign(&(D_RW(e)->key), sizeof(struct entry));` has been replaced with `PMEMoid_assign(&(D_RW(e)->key), sizeof(struct entry));` to correctly assign the value to the `key` field of the `entry` struct.
-3. The lines `PM_EQU((D_RW(e)->key), (key));`, `(D_RW(e)->value) = (value);`, and `(D_RW(e)->next) = (D_RO(buckets)->bucket[h]);` have been replaced with `(D_RW(e)->key) = key;`, `(D_RW(e)->value) = value;`, and `(D_RW(e)->next) = D_RO(buckets)->bucket[h];` respectively to correctly assign the values to the corresponding fields of the `entry` struct.
+2. In the second bug, the `PMTest_assign` macro is replaced with the `PMEMoid_assign` macro to assign the `key` value to the `e` object. This ensures that the `key` value is correctly assigned to the persistent memory object. 
+
+3. The assignment of `value` to `e->value` is corrected by removing the unnecessary parentheses. 
+
+4. The assignment of `D_RO(buckets)->bucket[h]` to `e->next` is corrected by removing the unnecessary parentheses. 
+
+5. The `PM_EQU` macro is replaced with direct assignments to update the `bucket[h]` and `count` fields of the `hashmap` object. 
+
+These changes fix the bugs in the code and ensure that the modifications to the persistent memory objects are correctly persisted.

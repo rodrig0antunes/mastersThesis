@@ -1,10 +1,6 @@
-To resolve the bug, we need to ensure that the changes made to the `count_dirty` field and the `count` field of the `hashmap` structure are persisted correctly.
+To resolve the bug, we need to ensure that the changes made to the `count_dirty` field of the `hashmap` structure are persisted correctly. Currently, the program is using the `PM_EQU` macro to assign a value to `count_dirty`, but it is missing the `pmemobj_persist` call to persist the changes.
 
-Currently, the code is using the `PM_EQU` macro to assign a value to `count_dirty` and `count`. However, this macro does not persist the changes to persistent memory.
-
-To fix this, we need to replace the `PM_EQU` macro with the `pmemobj_memcpy_persist` function to persist the changes.
-
-Here's the corrected code:
+To fix this, we need to add the `pmemobj_persist` call after assigning the value to `count_dirty`. Here's the corrected code:
 
 ``` C
 /*
@@ -30,7 +26,7 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 		num++;
 	}
 
-	D_RW(hashmap)->count_dirty = 1;
+	PM_EQU(D_RW(hashmap)->count_dirty, 1);
 	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
 			sizeof(D_RW(hashmap)->count_dirty));
 
@@ -47,20 +43,19 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 		return -1;
 	}
 
-	D_RW(hashmap)->count = (D_RW(hashmap)->count + 1);
+	PM_EQU(D_RW(hashmap)->count, (D_RW(hashmap)->count + 1));
 	pmemobj_persist(pop, &D_RW(hashmap)->count,
 			sizeof(D_RW(hashmap)->count));
 
 	PMTest_isPersistedBefore(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty), &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));
 
 	// BUG //
-
-	D_RW(hashmap)->count_dirty = 0;
-
+	PM_EQU(D_RW(hashmap)->count_dirty, 0);
+	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
+			sizeof(D_RW(hashmap)->count_dirty));
 	// BUG //
 
 	PMTest_isPersistedBefore(&D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count), &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));
-
 
 	num++;
 	if (num > MAX_HASHSET_THRESHOLD ||
@@ -75,6 +70,4 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 }
 ```
 
-In the corrected code, we have replaced the `PM_EQU` macro with direct assignments to `count_dirty` and `count`. We have also added the `pmemobj_persist` function to ensure that the changes are persisted to persistent memory.
-
-Please note that the code segment marked with `// BUG //` is where the bug was located, and the fix is to replace the `PM_EQU` macro with direct assignments.
+In the corrected code, we have added the `pmemobj_persist` call after assigning the value `0` to `count_dirty`. This ensures that the changes made to `count_dirty` are persisted correctly.

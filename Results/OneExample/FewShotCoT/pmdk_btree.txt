@@ -43,4 +43,4 @@ In the incorrect program, there are two bugs to fix, located in the areas of the
 In the corrected program, the bug fixes are put in the areas of the code delimited by the two '// BUG //' expressions.
 In the first bug fix, the correct assignment is made to the 'right' variable using 'TX_ZNEW' to allocate a new persistent object.
 In the second bug fix, the correct assignment is made to the 'n' field of the 'right' node, which should be 'BTREE_ORDER - c - 1' instead of 'D_RO(right)->n + 1'.
-The correction ensures that the program correctly splits a node into two and maintains the correct state of the persistent memory data structure.
+The correction ensures that the program correctly splits the node into two and assigns the correct values to the 'right' node.

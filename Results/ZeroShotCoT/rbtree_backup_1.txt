@@ -1,33 +1,78 @@
-To resolve the bug, we need to identify the issue in the code. The bug is located within the code block delimited by the expression '// BUG //'. Let's analyze this code block and identify the problem.
+To resolve the bug, we need to identify the issue in the code. The bug is located between the two "// BUG //" comments. Let's analyze the code in that section.
 
-``` C
-// BUG //
-
+The first line inside the bug section is:
+```C
 TOID(struct tree_map_node) child = D_RO(node)->slots[!c];
-TOID(struct tree_map_node) s = D_RO(map)->sentinel;
-
-TX_ADD(child);
-
-PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
-
-// BUG //
 ```
+This line is correctly assigning the `child` variable to the opposite child of the `node` based on the `c` parameter.
 
-The bug seems to be related to the assignment of `child` variable. The code is trying to assign `D_RO(node)->slots[!c]` to `child`, but it is missing the transactional context. To fix this bug, we need to add the transactional context to the assignment statement.
-
-``` C
-// BUG //
-
-TOID(struct tree_map_node) child;
-TX_ADD(node);
-child = D_RO(node)->slots[!c];
-TOID(struct tree_map_node) s = D_RO(map)->sentinel;
-
-TX_ADD(child);
-
+The second line inside the bug section is:
+```C
 PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
-
-// BUG //
 ```
+This line is using the `PM_EQU` macro to assign the opposite child of `node` to the child of `child` based on the `c` parameter. This line seems to be correct.
 
-Now, the assignment of `child` variable is within the transactional context, and the bug should be resolved.
+The third line inside the bug section is:
+```C
+if (!TOID_EQUALS(D_RO(child)->slots[c], s))
+    TX_SET(D_RW(child)->slots[c], parent, node);
+```
+This line is checking if the child of `child` is not equal to the sentinel `s`. If it's not equal, it sets the parent of the child of `child` to `node`. This line seems to be correct.
+
+To resolve the bug, we need to identify the issue in the code. The bug is located between the two "// BUG //" comments. Let's analyze the code in that section.
+
+The first line inside the bug section is:
+```C
+TOID(struct tree_map_node) child = D_RO(node)->slots[!c];
+```
+This line is correctly assigning the `child` variable to the opposite child of the `node` based on the `c` parameter.
+
+The second line inside the bug section is:
+```C
+PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
+```
+This line is using the `PM_EQU` macro to assign the opposite child of `node` to the child of `child` based on the `c` parameter. This line seems to be correct.
+
+The third line inside the bug section is:
+```C
+if (!TOID_EQUALS(D_RO(child)->slots[c], s))
+    TX_SET(D_RW(child)->slots[c], parent, node);
+```
+This line is checking if the child of `child` is not equal to the sentinel `s`. If it's not equal, it sets the parent of the child of `child` to `node`. This line seems to be correct.
+
+The issue seems to be with the missing closing brace for the `rbtree_map_rotate` function. Let's add the closing brace at the end of the function.
+
+Here's the corrected code:
+
+```C
+/*
+ * rbtree_map_rotate -- (internal) performs a left/right rotation around a node
+ */
+static void
+rbtree_map_rotate(TOID(struct rbtree_map) map,
+	TOID(struct tree_map_node) node, enum rb_children c)
+{
+	
+		// BUG //
+		
+	TOID(struct tree_map_node) child = D_RO(node)->slots[!c];
+	TOID(struct tree_map_node) s = D_RO(map)->sentinel;
+
+	
+	TX_ADD(child);
+
+	PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
+		
+		// BUG //
+
+	if (!TOID_EQUALS(D_RO(child)->slots[c], s))
+		TX_SET(D_RW(child)->slots[c], parent, node);
+	
+	PM_EQU(NODE_P(child), NODE_P(node));
+
+	TX_SET(NODE_P(node), slots[NODE_LOCATION(node)], child);
+
+	PM_EQU(D_RW(child)->slots[c], node);
+	PM_EQU(D_RW(node)->parent, child);
+}
+```

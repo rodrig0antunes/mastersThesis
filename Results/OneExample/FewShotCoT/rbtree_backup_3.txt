@@ -38,6 +38,8 @@ In the incorrect program, there are two bugs to fix, located in the areas of the
 
 In the corrected program, the bug fixes are put in the areas of the code delimited by the '// BUG //' expressions.
 
-In the first bug fix, the correct transaction-related macro, 'TX_SET(D_RW(node)->slots[!c], D_RO(child)->slots[c]);', is used. It sets the value of 'D_RW(node)->slots[!c]' to the value of 'D_RO(child)->slots[c]' within the transaction using the 'TX_SET' macro. This ensures that the assignment is part of the transaction and will be rolled back if the transaction aborts.
+In the first bug fix, the correct transaction-related macro, 'TX_SET(D_RW(node)->slots[!c], D_RO(child)->slots[c]);', is used. It sets the value of 'D_RW(node)->slots[!c]' to the value of 'D_RO(child)->slots[c]' within the transaction using the 'TX_SET' macro.
 
-In the second bug fix, the correct transaction-related macro, 'TX_SET(NODE_P(child), NODE_P(node));', is used. It sets the value of 'NODE_P(child)' to the value of 'NODE_P(node)' within the transaction using the 'TX_SET' macro. This ensures that the assignment is part of the transaction and will be rolled back if the transaction aborts.
+In the second bug fix, the correct transaction-related macro, 'TX_SET(NODE_P(child), NODE_P(node));', is used. It sets the value of 'NODE_P(child)' to the value of 'NODE_P(node)' within the transaction using the 'TX_SET' macro.
+
+By using the correct macros, it is ensured that the value attributions are part of the transaction, guaranteeing that if the transaction aborts, the operations are rolled back.

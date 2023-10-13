@@ -8,15 +8,17 @@ Here are the steps to fix the bug:
 
 3. Replace the line `TOID(struct entry) e = TX_NEW(struct entry);` with `TOID(struct entry) e = TX_NEW(struct entry);` to allocate a new entry in the transactional memory.
 
-4. Replace the line `PMTest_assign(&(D_RW(e)->key), sizeof(struct entry));` with `PM_EQU((D_RW(e)->key), (key));` to assign the `key` value to the `key` field of the new entry.
+4. Replace the line `PMTest_assign(&(D_RW(e)->key), sizeof(struct entry));` with `TX_ADD_DIRECT(&(D_RW(e)->key));` to add the `key` field of the new entry to the transaction.
 
-5. Replace the line `(D_RW(e)->key) = (key);` with `PM_EQU((D_RW(e)->value), (value));` to assign the `value` to the `value` field of the new entry.
+5. Replace the line `(D_RW(e)->key) = (key);` with `D_RW(e)->key = key;` to assign the `key` value to the new entry.
 
-6. Replace the line `(D_RW(e)->next) = (D_RO(buckets)->bucket[h]);` with `PM_EQU((D_RW(e)->next), (D_RO(buckets)->bucket[h]));` to assign the `bucket[h]` value to the `next` field of the new entry.
+6. Replace the line `(D_RW(e)->value) = (value);` with `D_RW(e)->value = value;` to assign the `value` to the new entry.
 
-7. Replace the line `PM_EQU((D_RW(buckets)->bucket[h]), (e));` with `D_RW(buckets)->bucket[h] = e;` to update the `bucket[h]` value with the new entry.
+7. Replace the line `(D_RW(e)->next) = (D_RO(buckets)->bucket[h]);` with `D_RW(e)->next = D_RO(buckets)->bucket[h];` to assign the `bucket[h]` value to the `next` field of the new entry.
 
-8. Replace the line `PM_EQU((D_RW(hashmap)->count), (D_RW(hashmap)->count+1));` with `D_RW(hashmap)->count = D_RW(hashmap)->count + 1;` to increment the `count` value of the `hashmap` by 1.
+8. Replace the line `PM_EQU((D_RW(buckets)->bucket[h]), (e));` with `D_RW(buckets)->bucket[h] = e;` to assign the new entry to the `bucket[h]` field.
+
+9. Replace the line `PM_EQU((D_RW(hashmap)->count), (D_RW(hashmap)->count+1));` with `D_RW(hashmap)->count = D_RW(hashmap)->count + 1;` to increment the `count` field of the `hashmap` by 1.
 
 Here is the corrected code:
 
@@ -53,9 +55,10 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 		TX_ADD_FIELD(hashmap, count);
 
 		TOID(struct entry) e = TX_NEW(struct entry);
-		PM_EQU((D_RW(e)->key), (key));
-		PM_EQU((D_RW(e)->value), (value));
-		PM_EQU((D_RW(e)->next), (D_RO(buckets)->bucket[h]));
+		TX_ADD_DIRECT(&(D_RW(e)->key));
+		D_RW(e)->key = key;
+		D_RW(e)->value = value;
+		D_RW(e)->next = D_RO(buckets)->bucket[h];
 
 		D_RW(buckets)->bucket[h] = e;
 		D_RW(hashmap)->count = D_RW(hashmap)->count + 1;

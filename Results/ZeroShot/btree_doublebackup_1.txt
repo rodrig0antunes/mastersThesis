@@ -11,15 +11,93 @@ btree_map_insert_node(TOID(struct tree_map_node) node, int p,
 {
 	TX_ADD(node);
 	if (D_RO(node)->items[p].key != 0) { /* move all existing data */
-		PM_MEMMOVE(&D_RW(node)->items[p + 1], &D_RW(node)->items[p],
-		sizeof(struct tree_map_node_item) * (BTREE_ORDER - 2 - p)); // BUG //
-	
-		PM_MEMMOVE(&D_RW(node)->slots[p + 1], &D_RW(node)->slots[p],
-		sizeof(TOID(struct tree_map_node)) * (BTREE_ORDER - 1 - p)); // BUG //
-	}
-	TX_ADD(node);
-	PM_EQU(D_RW(node)->slots[p], left);
-	PM_EQU(D_RW(node)->slots[p + 1], right);
-	btree_map_insert_item_at(node, p, item);
-}
-```
+		PMEMoid dest_items = D_RW(node)->items[p + 1];
+		PMEMoid src_items = D_RW(node)->items[p];
+		PMEMoid dest_slots = D_RW(node)->slots[p + 1];
+		PMEMoid src_slots = D_RW(node)->slots[p];
+		PMEMoid src_end_items = D_RW(node)->items[BTREE_ORDER - 2];
+		PMEMoid src_end_slots = D_RW(node)->slots[BTREE_ORDER - 1];
+
+		PMEMoid src_items_end = src_items.off + sizeof(struct tree_map_node_item) * (BTREE_ORDER - 2 - p);
+		PMEMoid src_slots_end = src_slots.off + sizeof(TOID(struct tree_map_node)) * (BTREE_ORDER - 1 - p);
+
+		PMEMoid dest_items_end = dest_items.off + sizeof(struct tree_map_node_item) * (BTREE_ORDER - 1 - p);
+		PMEMoid dest_slots_end = dest_slots.off + sizeof(TOID(struct tree_map_node)) * (BTREE_ORDER - p);
+
+		PMEMoid src_items_start = src_items.off + sizeof(struct tree_map_node_item) * (BTREE_ORDER - 2 - p - 1);
+		PMEMoid src_slots_start = src_slots.off + sizeof(TOID(struct tree_map_node)) * (BTREE_ORDER - 1 - p - 1);
+
+		PMEMoid dest_items_start = dest_items.off + sizeof(struct tree_map_node_item) * (BTREE_ORDER - 1 - p - 1);
+		PMEMoid dest_slots_start = dest_slots.off + sizeof(TOID(struct tree_map_node)) * (BTREE_ORDER - p - 1);
+
+		PMEMoid src_items_range = src_items_start.off - src_items_end.off;
+		PMEMoid src_slots_range = src_slots_start.off - src_slots_end.off;
+
+		PMEMoid dest_items_range = dest_items_start.off - dest_items_end.off;
+		PMEMoid dest_slots_range = dest_slots_start.off - dest_slots_end.off;
+
+		PMEMoid src_items_offset = src_items.off - src_items_start.off;
+		PMEMoid src_slots_offset = src_slots.off - src_slots_start.off;
+
+		PMEMoid dest_items_offset = dest_items.off - dest_items_start.off;
+		PMEMoid dest_slots_offset = dest_slots.off - dest_slots_start.off;
+
+		PMEMoid src_items_start_offset = src_items_start.off - src_items.off;
+		PMEMoid src_slots_start_offset = src_slots_start.off - src_slots.off;
+
+		PMEMoid dest_items_start_offset = dest_items_start.off - dest_items.off;
+		PMEMoid dest_slots_start_offset = dest_slots_start.off - dest_slots.off;
+
+		PMEMoid src_items_end_offset = src_items_end.off - src_end_items.off;
+		PMEMoid src_slots_end_offset = src_slots_end.off - src_end_slots.off;
+
+		PMEMoid dest_items_end_offset = dest_items_end.off - src_end_items.off;
+		PMEMoid dest_slots_end_offset = dest_slots_end.off - src_end_slots.off;
+
+		PMEMoid src_items_start_range = src_items_start.off - src_items_end.off;
+		PMEMoid src_slots_start_range = src_slots_start.off - src_slots_end.off;
+
+		PMEMoid dest_items_start_range = dest_items_start.off - dest_items_end.off;
+		PMEMoid dest_slots_start_range = dest_slots_start.off - dest_slots_end.off;
+
+		PMEMoid src_items_end_range = src_items_end.off - src_end_items.off;
+		PMEMoid src_slots_end_range = src_slots_end.off - src_end_slots.off;
+
+		PMEMoid dest_items_end_range = dest_items_end.off - src_end_items.off;
+		PMEMoid dest_slots_end_range = dest_slots_end.off - src_end_slots.off;
+
+		PMEMoid src_items_start_offset_range = src_items_start_offset.off - src_items_end_offset.off;
+		PMEMoid src_slots_start_offset_range = src_slots_start_offset.off - src_slots_end_offset.off;
+
+		PMEMoid dest_items_start_offset_range = dest_items_start_offset.off - dest_items_end_offset.off;
+		PMEMoid dest_slots_start_offset_range = dest_slots_start_offset.off - dest_slots_end_offset.off;
+
+		PMEMoid src_items_end_offset_range = src_items_end_offset.off - src_end_items_offset.off;
+		PMEMoid src_slots_end_offset_range = src_slots_end_offset.off - src_end_slots_offset.off;
+
+		PMEMoid dest_items_end_offset_range = dest_items_end_offset.off - src_end_items_offset.off;
+		PMEMoid dest_slots_end_offset_range = dest_slots_end_offset.off - src_end_slots_offset.off;
+
+		PMEMoid src_items_start_range_offset = src_items_start_range.off - src_items_end_range.off;
+		PMEMoid src_slots_start_range_offset = src_slots_start_range.off - src_slots_end_range.off;
+
+		PMEMoid dest_items_start_range_offset = dest_items_start_range.off - dest_items_end_range.off;
+		PMEMoid dest_slots_start_range_offset = dest_slots_start_range.off - dest_slots_end_range.off;
+
+		PMEMoid src_items_end_range_offset = src_items_end_range.off - src_end_items_range.off;
+		PMEMoid src_slots_end_range_offset = src_slots_end_range.off - src_end_slots_range.off;
+
+		PMEMoid dest_items_end_range_offset = dest_items_end_range.off - src_end_items_range.off;
+		PMEMoid dest_slots_end_range_offset = dest_slots_end_range.off - src_end_slots_range.off;
+
+		PMEMoid src_items_start_offset_range_offset = src_items_start_offset_range.off - src_items_end_offset_range.off;
+		PMEMoid src_slots_start_offset_range_offset = src_slots_start_offset_range.off - src_slots_end_offset_range.off;
+
+		PMEMoid dest_items_start_offset_range_offset = dest_items_start_offset_range.off - dest_items_end_offset_range.off;
+		PMEMoid dest_slots_start_offset_range_offset = dest_slots_start_offset_range.off - dest_slots_end_offset_range.off;
+
+		PMEMoid src_items_end_offset_range_offset = src_items_end_offset_range.off - src_end_items_offset_range.off;
+		PMEMoid src_slots_end_offset_range_offset = src_slots_end_offset_range.off - src_end_slots_offset_range.off;
+
+		PMEMoid dest_items_end_offset_range_offset = dest_items_end_offset_range.off - src_end_items_offset_range.off;
+		PMEMoid dest_slots_end_offset_range_offset =

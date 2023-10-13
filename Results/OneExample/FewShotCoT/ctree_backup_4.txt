@@ -40,15 +40,15 @@ ctree_map_insert_leaf(struct tree_map_entry *p,
 
 	pmemobj_tx_add_range_direct(p, sizeof(*p));
 	
-	// BUG //
+	// BUG // 
 }
 ```
 
 ### Explanation
 In the incorrect program, there are two bugs to fix, both located in the area of the code delimited by the two '// BUG //' expressions.
 
-In the correction, the first bug fix is to update the key and slot of the parent entry before assigning the new node to the parent entry's slot. This ensures that the parent entry is correctly updated with the new node's information.
+In the correction, the first bug fix is to update the key and slot of the parent entry before assigning the new node to the parent entry. This ensures that the parent entry is correctly updated with the new node information.
 
-The second bug fix is to add the parent entry 'p' to the transaction using 'pmemobj_tx_add_range_direct'. This ensures that the changes made to the parent entry are properly recorded in the transaction and will be committed if the transaction is successful or rolled back if the transaction aborts.
+The second bug fix is to add the parent entry 'p' to the transaction using 'pmemobj_tx_add_range_direct' before modifying it. This ensures that the changes made to the parent entry are properly recorded in the transaction log.
 
-By making these bug fixes, the program will correctly insert a new leaf at the desired position in the tree and maintain the consistency of the persistent memory data structure.
+By making these bug fixes, the program will correctly insert a new leaf at the desired position in the tree, maintaining the consistency of the persistent memory data structure.

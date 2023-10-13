@@ -50,6 +50,6 @@ In the given code, there are two bugs to fix, both located in the area of the co
 
 In the correction, the first bug fix is to add the line 'TX_ADD_DIRECT(p);' before modifying the 'p' pointer. This line tells the transaction system that it is intended to modify the 'p' pointer during the transaction. It essentially registers 'p' as a part of the transaction, making sure that if the transaction aborts, the changes to 'p' are rolled back as well.
 
-The second bug fix is to add the closing brace '}' after the call to 'ctree_map_insert_leaf()'. This closing brace was missing in the original code, causing a syntax error.
+The second bug fix is to add the closing brace '}' after the call to 'ctree_map_insert_leaf' function. This closing brace was missing in the original code, causing a syntax error.
 
-By adding 'TX_ADD_DIRECT(p);' and the closing brace '}', the transaction system ensures that the modifications to 'p' and the call to 'ctree_map_insert_leaf()' are properly recorded. If the transaction is successful, these changes will be committed, and if the transaction aborts, they will be rolled back, maintaining the consistency of your persistent memory data structures.
+By adding 'TX_ADD_DIRECT(p);' and the closing brace '}', the transaction system ensures that the modifications to 'p' and the call to 'ctree_map_insert_leaf' function are properly recorded. If the transaction is successful, these changes will be committed, and if the transaction aborts, they will be rolled back, maintaining the consistency of your persistent memory data structures.

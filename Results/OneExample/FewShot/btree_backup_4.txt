@@ -27,7 +27,8 @@ btree_map_rotate_right(TOID(struct tree_map_node) rsb,
 
 	PM_EQU(D_RW(rsb)->n, D_RO(rsb)->n - 1); /* it loses one element, but still > min */
 		
-		// BUG //
+	TX_ADD_FIELD(rsb, items[0]);
+	TX_ADD_FIELD(rsb, slots[0]);
 		
 	/* move all existing elements back by one array slot */
 	PM_MEMMOVE(D_RW(rsb)->items, D_RO(rsb)->items + 1,

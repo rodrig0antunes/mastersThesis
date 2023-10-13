@@ -1,6 +1,6 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
 
-''' C
+``` C
 /*
  * rbtree_map_rotate -- (internal) performs a left/right rotation around a node
  */
@@ -15,6 +15,7 @@ rbtree_map_rotate(TOID(struct rbtree_map) map,
 
 	TX_ADD(node);
 	TX_ADD(child);
+
 	
 	PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
 		
@@ -30,10 +31,12 @@ rbtree_map_rotate(TOID(struct rbtree_map) map,
 	PM_EQU(D_RW(child)->slots[c], node);
 	PM_EQU(D_RW(node)->parent, child);
 }
-'''.
+```
 
-## Explanation
+### Explanation
 In the example, there are two bugs to repair, located in the area of the code delimited by the two '// BUG //' expressions. 
 In the correction of the example, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
-In the correction, two lines 'TX_ADD(node);' and 'TX_ADD(child);' are added before the assignment 'PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);' to ensure that both 'node' and 'child' are properly registered as part of the transaction. 
-By adding 'TX_ADD(node);' and 'TX_ADD(child);', the transaction system ensures that the changes made to 'node' and 'child' are properly recorded. If the transaction aborts, these changes will be rolled back, maintaining the consistency of your persistent memory data structures.
+In the correction, the lines 'TX_ADD(node);' and 'TX_ADD(child);' are added before the assignments to 'D_RW(node)->slots[!c]' and 'D_RW(child)->slots[c]'. 
+These lines tell the transaction system that it is intended to modify the 'node' and 'child' pointers during the transaction. It essentially registers 'node' and 'child' as part of the transaction, making sure that if the transaction aborts, the changes to 'node' and 'child' are rolled back as well.
+By adding 'TX_ADD(node);' and 'TX_ADD(child);', the transaction system ensures that the assignments to 'D_RW(node)->slots[!c]' and 'D_RW(child)->slots[c]' are properly recorded. 
+If the transaction is successful, these changes will be committed, and if the transaction aborts, they will be rolled back, maintaining the consistency of your persistent memory data structures.

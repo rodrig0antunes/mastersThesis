@@ -19,10 +19,14 @@ rbtree_map_insert_bst(TOID(struct rbtree_map) map, TOID(struct tree_map_node) n)
 		dst = &D_RW(*dst)->slots[D_RO(n)->key > D_RO(*dst)->key];
 	}
 	
+	// BUG //
 	TX_BEGIN(map) {
 		TX_SET(n, parent, parent);
 		PM_EQU(*dst, n);
 	} TX_END
 
+	// BUG //
 }
 ```
+
+In the corrected program, the bug is fixed by enclosing the code block that modifies the persistent memory inside a transaction block using `TX_BEGIN` and `TX_END` macros. This ensures that the modifications to the persistent memory are atomic and durable.

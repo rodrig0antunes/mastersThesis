@@ -28,4 +28,4 @@ btree_map_insert_node(TOID(struct tree_map_node) node, int p,
 }
 ```
 
-Now the code should correctly move the existing data in the node and make space for the new node.
+Now the code should correctly move the existing data in the node.

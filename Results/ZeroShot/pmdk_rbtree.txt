@@ -19,16 +19,13 @@ rbtree_map_rotate(TOID(struct rbtree_map) map,
 	if (!TOID_EQUALS(D_RO(child)->slots[c], s))
 		TX_SET(D_RW(child)->slots[c], parent, node);
 		
-	// BUG#1 //
+		// BUG#1 //
 	PM_EQU(NODE_P(child), NODE_P(node));
 	TX_ADD(NODE_P(node));
 	PM_EQU(NODE_PARENT_AT(node, NODE_LOCATION(node)), child);
-	// BUG#1 //
-
 	PM_EQU(D_RW(child)->slots[c], node);
 	PM_EQU(D_RW(node)->parent, child);
-		
-	// BUG#1 //
+		// BUG#1 //
 }
 
 /*

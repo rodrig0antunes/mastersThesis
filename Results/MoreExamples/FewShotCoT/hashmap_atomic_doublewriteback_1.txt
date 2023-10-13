@@ -75,6 +75,5 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 ### Explanation
 In the example, there are two bugs to repair, located in the areas of the code delimited by the two '// BUG //' expressions. 
 In the correction of the example, the bug fixes are put in the areas of the code delimited by the two '// BUG //' expressions.
-In the correction, the incorrect usage of the macro `PM_EQU` has been replaced with the correct assignment operator `=`.
-Additionally, one of the redundant `pmemobj_persist` calls has been removed to eliminate unnecessary overhead.
-By using the correct assignment operator and removing the redundant `pmemobj_persist` call, the bugs are fixed and the program will work as expected.
+In the correction, the incorrect usage of the macro `PM_EQU` is replaced with the correct assignment operator `=`. This ensures that the `count_dirty` field is correctly set to 1 and 0, respectively.
+By using the correct assignment operator, the correct value is assigned to the `count_dirty` field, ensuring that it is correctly persisted in the persistent memory pool.

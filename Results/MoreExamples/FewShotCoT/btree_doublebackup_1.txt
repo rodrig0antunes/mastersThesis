@@ -25,6 +25,8 @@ btree_map_insert_node(TOID(struct tree_map_node) node, int p,
 ```
 
 ### Explanation
-In the given code, there are two bugs to fix. The first bug is that the `TX_ADD(node)` statement is missing after moving the existing data. The second bug is that the `TX_ADD(node)` statement is missing after inserting the item. 
+In the given code, there are two bugs to fix. The first bug is that the `TX_ADD(node)` statement is missing after moving the existing data. The second bug is that the `TX_ADD(node)` statement is missing after inserting the new item.
 
-In the corrected code, the missing `TX_ADD(node)` statement is added after moving the existing data and after inserting the item. This ensures that the modifications to the `node` object are properly added to the transaction.
+In the corrected code, the missing `TX_ADD(node)` statement is added after moving the existing data and after inserting the new item. This ensures that the changes made to the `node` object are properly added to the transaction.
+
+By adding the missing `TX_ADD(node)` statements, the corrected code ensures that all modifications to the `node` object are included in the transaction, preserving the correct transactional behavior.

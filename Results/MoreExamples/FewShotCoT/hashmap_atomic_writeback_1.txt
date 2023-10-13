@@ -56,6 +56,8 @@ hm_atomic_rebuild_finish(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap)
 In the example, there are two bugs to repair, located in the areas of the code delimited by the two '// BUG //' expressions. 
 In the correction of the example, the bug fixes are put in the areas of the code delimited by the two '// BUG //' expressions.
 In the first bug fix, the line 'POBJ_FREE(&D_RO(hashmap)->buckets);' is replaced with 'PMEMoid buckets_oid = D_RO(hashmap)->buckets.oid; POBJ_FREE(&buckets_oid);'. 
-This change ensures that the correct OID is passed to the POBJ_FREE function, as the original code was passing a pointer to the TOID struct instead of the OID itself.
-In the second bug fix, the line 'PM_EQU(D_RW(hashmap)->buckets, D_RO(hashmap)->buckets_tmp);' is left unchanged, as it correctly assigns the value of 'buckets_tmp' to 'buckets'.
-These bug fixes ensure that the correct memory is freed and that the assignment of 'buckets_tmp' to 'buckets' is properly persisted in the persistent memory pool.
+This change ensures that the correct OID is passed to the POBJ_FREE function, as the POBJ_FREE function expects a pointer to an OID, not a pointer to a TOID. 
+By assigning the OID of the 'buckets' field to a separate variable 'buckets_oid' and passing that variable to POBJ_FREE, the bug is fixed.
+In the second bug fix, the line 'PM_EQU(D_RW(hashmap)->buckets, D_RO(hashmap)->buckets_tmp);' is left unchanged. 
+This line is responsible for updating the 'buckets' field of the 'hashmap' struct with the contents of the 'buckets_tmp' field. 
+This update is necessary to complete the rebuild process.

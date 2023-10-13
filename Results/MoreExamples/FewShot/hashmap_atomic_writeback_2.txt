@@ -1,6 +1,6 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
 
-``` C
+''' C
 /*
  * hm_atomic_rebuild_finish -- finishes rebuild, assumes buckets_tmp is not null
  */
@@ -53,4 +53,4 @@ hm_atomic_rebuild_finish(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap)
 	PMTest_isPersistent(&D_RW(hashmap)->buckets, sizeof(D_RW(hashmap)->buckets));
 	PMTest_isPersistent(&D_RW(hashmap)->buckets_tmp, sizeof(D_RW(hashmap)->buckets_tmp));
 }
-```
+'''.

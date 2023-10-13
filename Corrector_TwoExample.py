@@ -96,7 +96,7 @@ if __name__ == '__main__':
       }
     ],
     temperature=0,
-    max_tokens=1296,
+    max_tokens=1500,
     top_p=1.0,
     frequency_penalty=0.0,
     presence_penalty=0.0

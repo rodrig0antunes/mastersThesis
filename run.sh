@@ -11,6 +11,7 @@ then
         file="$1/$prompt"
         python3 Corrector_ZeroShot.py $file
         echo " === DONE : $file === "
+        sleep 5
     done
 
 elif [[ "$1" == *"Prompts/OneExample"* ]] 
@@ -21,6 +22,7 @@ then
         file="$1/$prompt"
         python3 Corrector_OneExample.py $file
         echo " === DONE : $file === "
+        sleep 5
     done
 
 elif [[ "$1" == *"Prompts/MoreExamples"* ]] 
@@ -31,6 +33,7 @@ then
         file="$1/$prompt"
         python3 Corrector_TwoExample.py $file
         echo " === DONE : $file === "
+        sleep 5
     done
 
 else

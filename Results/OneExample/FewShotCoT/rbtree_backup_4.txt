@@ -37,7 +37,8 @@ rbtree_map_insert_bst(TOID(struct rbtree_map) map, TOID(struct tree_map_node) n)
 ### Explanation
 In the incorrect program, there are two bugs to fix, both located in the area of the code delimited by the two '// BUG //' expressions.
 In the corrected program, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
-In the correction, three new lines 'TX_ADD_DIRECT(parent);', 'TX_ADD_DIRECT(*dst);', and 'TX_ADD_DIRECT(n);' are added before setting the parent of the new node 'n'.
-These lines tell the transaction system that it is intended to modify the 'parent', '*dst', and 'n' variables during the transaction. They essentially register these variables as part of the transaction, making sure that if the transaction aborts, the changes to these variables are rolled back as well.
-By adding 'TX_ADD_DIRECT(parent);', 'TX_ADD_DIRECT(*dst);', and 'TX_ADD_DIRECT(n);', the transaction system ensures that the assignment of the parent of 'n' and the assignment of '*dst' are properly recorded.
+In the correction, three new lines are added before and after the line 'TX_SET(n, parent, parent);'.
+These lines are 'TX_ADD_DIRECT(parent);', 'TX_ADD_DIRECT(*dst);', and 'TX_ADD_DIRECT(n);'.
+These lines tell the transaction system that it is intended to modify the 'parent', '*dst', and 'n' variables during the transaction.
+By adding these lines, the transaction system ensures that the changes made to these variables are properly recorded.
 If the transaction is successful, these changes will be committed, and if the transaction aborts, they will be rolled back, maintaining the consistency of your persistent memory data structures.

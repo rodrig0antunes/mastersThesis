@@ -75,4 +75,4 @@ The second bug fix is to add the line 'pmemobj_persist(pop, &D_RW(hashmap)->coun
 
 By making these changes, the program ensures that the changes to 'D_RW(hashmap)->count_dirty' are durably stored in persistent memory, preserving data integrity.
 
-Note: The lines 'PMTest_isPersistedBefore(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty), &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));' and 'PMTest_isPersistedBefore(&D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count), &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));' are not standard PMDK functions and are not necessary for the program to function correctly. They have been removed in the corrected program.
+Note: The code 'PMTest_isPersistedBefore(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty), &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));' and 'PMTest_isPersistent(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));' are not standard PMDK functions. They are assumed to be custom functions for testing purposes.

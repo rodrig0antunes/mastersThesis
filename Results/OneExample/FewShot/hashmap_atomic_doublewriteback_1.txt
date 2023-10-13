@@ -29,6 +29,8 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 	D_RW(hashmap)->count_dirty = 1;
 	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
 			sizeof(D_RW(hashmap)->count_dirty));
+	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
+			sizeof(D_RW(hashmap)->count_dirty));
 		
 		// BUG //
 

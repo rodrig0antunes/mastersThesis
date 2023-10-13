@@ -35,13 +35,6 @@ hm_atomic_rebuild_finish(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap)
 	
 		// BUG //
 	
-	/*
-	 * We have to set offset manually instead of substituting OID_NULL,
-	 * because we won't be able to recover easily if crash happens after
-	 * pool_uuid_lo, but before offset is set. Another reason why everyone
-	 * should use transaction API.
-	 * See recovery process in hm_init and TOID_IS_NULL macro definition.
-	 */
 	PM_EQU(D_RW(hashmap)->buckets_tmp.oid.off, 0);
 	pmemobj_persist(pop, &D_RW(hashmap)->buckets_tmp,
 			sizeof(D_RW(hashmap)->buckets_tmp));

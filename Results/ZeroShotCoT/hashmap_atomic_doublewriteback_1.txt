@@ -28,12 +28,11 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 		num++;
 	}
 		
-	// BUG //
+	// Set count_dirty to 1 and persist the changes
 	D_RW(hashmap)->count_dirty = 1;
 	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
 			sizeof(D_RW(hashmap)->count_dirty));
-	// BUG //
-
+		
 	struct entry_args args = {
 		.key = key,
 		.value = value,
@@ -47,14 +46,14 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 		return -1;
 	}
 
-	D_RW(hashmap)->count = (D_RW(hashmap)->count + 1);
+	PM_EQU(D_RW(hashmap)->count, (D_RW(hashmap)->count + 1));
 	pmemobj_persist(pop, &D_RW(hashmap)->count,
 			sizeof(D_RW(hashmap)->count));
 
 	PMTest_isPersistedBefore(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty), &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));
 
 
-	D_RW(hashmap)->count_dirty = 0;
+	PM_EQU(D_RW(hashmap)->count_dirty, 0);
 	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
 			sizeof(D_RW(hashmap)->count_dirty));
 
@@ -74,4 +73,4 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 }
 ```
 
-In the corrected code, we have replaced the `PM_EQU` macro with a direct assignment `D_RW(hashmap)->count_dirty = 1;` and `D_RW(hashmap)->count_dirty = 0;`. We have also added the corresponding `pmemobj_persist` calls to ensure the changes are persisted correctly.
+Now the changes made to the `count_dirty` field will be correctly persisted.

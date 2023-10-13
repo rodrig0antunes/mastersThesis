@@ -63,6 +63,5 @@ btree_map_find_dest_node(TOID(struct btree_map) map,
 ### Explanation
 In the example, there are two bugs to repair, located in the areas of the code delimited by the '// BUG //' expressions.
 In the correction of the example, the bug fixes are put in the areas of the code delimited by the '// BUG //' expressions.
-In the correction, the order of the operations is changed. First, the field 'map->root' is registered as part of the transaction using 'TX_ADD_FIELD(map, root);'. Then, the value of 'map->root' is updated with 'PM_EQU(D_RW(map)->root, up);'.
-By changing the order, it ensures that the update to 'map->root' is properly included in the transaction, maintaining data consistency.
-This correction helps maintain the integrity of the data when using transactional memory updates.
+In the correction, the order of the operations is changed. First, the 'TX_ADD_FIELD(map, root);' is called to register the 'map'->'root' field as part of the transaction, ensuring that the update to 'map'->'root' is properly included in the transaction, maintaining data consistency. Then, the value of 'up' is assigned to 'D_RW(map)->root'.
+By changing the order, it is ensured that the correct persistency of data to persistent memory. This guarantees that the new value is stored safely in the persistent memory pool.

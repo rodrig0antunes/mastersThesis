@@ -26,5 +26,7 @@ btree_map_insert_node(TOID(struct tree_map_node) node, int p,
 
 	TX_ADD(node);
 
+	// BUG //
+
 }
-'''.
+'''

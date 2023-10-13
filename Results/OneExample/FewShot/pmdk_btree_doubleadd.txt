@@ -169,4 +169,20 @@ int main(int argc, const char *argv[]) {
 		C_deleteMetadataVector(metadataVectorPtr[i]);
 	}
 
-	printf("delete time=%lu us\n", 100000
+	printf("delete time=%lu us\n", 1000000 * (tv_end.tv_sec - tv_start.tv_sec) + 
+		(tv_end.tv_usec - tv_start.tv_usec));
+	
+	C_deleteVeriInstance(p);
+
+	uint64_t old_nkeys = nkeys;
+
+	/* tree should be empty */
+	map_foreach(mapc, D_RW(root)->map, dec_keys, NULL);
+	assert(old_nkeys == nkeys);
+
+	map_ctx_free(mapc);
+	pmemobj_close(pop);
+
+	return 0;
+}
+```

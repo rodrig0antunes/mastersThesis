@@ -68,4 +68,4 @@ In the correction of the program, the first bug fix is to add the line 'pmemobj_
 
 The second bug fix is to add the line 'pmemobj_persist(pop, &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));' right before the line 'PMTest_isPersistedBefore(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty), &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));'. This ensures that the change to 'count_dirty' is durably stored in persistent memory before the check is made.
 
-By making these changes, the persistent actions occur right after the respective value updates and before the checks, ensuring that the changes are durably stored in persistent memory and preserving data integrity.
+By making these changes, the program ensures that the changes to 'count_dirty' are durably stored in persistent memory, preserving data integrity.

@@ -29,7 +29,6 @@ btree_map_merge(TOID(struct btree_map) map, TOID(struct tree_map_node) rn,
 	PM_EQU(D_RW(parent)->n, D_RO(parent)->n - 1);
 		
 	TX_ADD(parent);
-		
 	/* move everything to the right of the separator by one array slot */
 	PM_MEMMOVE(D_RW(parent)->items + p, D_RW(parent)->items + p + 1,
 	sizeof(struct tree_map_node_item) * (D_RO(parent)->n - p));
@@ -46,11 +45,9 @@ btree_map_merge(TOID(struct btree_map) map, TOID(struct tree_map_node) rn,
 }
 '''.
 
-### Explanation
+## Explanation
 In the example, there are two bugs to repair, located in the areas of the code delimited by the '// BUG //' expressions. 
 In the correction of the example, the bug fixes are put in the areas of the code delimited by the '// BUG //' expressions.
-In the correction, the first bug fix is to add 'TX_ADD(parent);' after the line 'PM_EQU(D_RW(parent)->n, D_RO(parent)->n - 1);'. This line tells the transaction system that it is intended to modify the 'parent' pointer during the transaction. It essentially registers 'parent' as a part of the transaction, making sure that if the transaction aborts, the changes to 'parent' are rolled back as well.
-By adding 'TX_ADD(parent);', the transaction system ensures that the modification of 'parent' is properly recorded. If the transaction is successful, this change will be committed, and if the transaction aborts, it will be rolled back, maintaining the consistency of your persistent memory data structures.
-
-The second bug fix is to add 'TX_ADD(map);' before the line 'TX_FREE(D_RO(map)->root);'. This line tells the transaction system that it is intended to modify the 'map' pointer during the transaction. It essentially registers 'map' as a part of the transaction, making sure that if the transaction aborts, the changes to 'map' are rolled back as well.
-By adding 'TX_ADD(map);', the transaction system ensures that the modification of 'map' is properly recorded. If the transaction is successful, this change will be committed, and if the transaction aborts, it will be rolled back, maintaining the consistency of your persistent memory data structures.
+In the correction, the first bug fix is to add 'TX_ADD(parent);' before moving the items and slots in the parent node. This ensures that the changes made to the parent node are properly recorded in the transaction system.
+The second bug fix is to remove the '// BUG //' expression and leave the code as it is. This code is correct and does not need any modification.
+By adding 'TX_ADD(parent);' before modifying the parent node, the transaction system ensures that the changes made to the parent node are properly recorded. If the transaction aborts, the changes to the parent node will be rolled back, maintaining the consistency of the persistent memory data structures.

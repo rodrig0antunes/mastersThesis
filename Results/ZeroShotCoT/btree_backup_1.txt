@@ -1,6 +1,6 @@
-To resolve the bug, we need to fix the code inside the area delimited by the expression '// BUG //'. 
+The bug in the code is that the assignment `PM_EQU(D_RW(map)->root, up);` is not being persisted to the persistent memory. This means that the change to the root node is not being saved and will be lost when the program exits.
 
-The bug is that the assignment `PM_EQU(D_RW(map)->root, up);` is incorrect. The correct assignment should be `PM_EQU(map->root, up);`. 
+To fix this bug, we need to use the `pmemobj_tx_add_range()` function to add the assignment to the transaction. This will ensure that the change is persisted to the persistent memory.
 
 Here is the corrected code:
 
@@ -31,7 +31,8 @@ btree_map_find_dest_node(TOID(struct btree_map) map,
 			PM_EQU(D_RW(up)->slots[1], right);
 
 			// BUG //
-			PM_EQU(map->root, up);
+			pmemobj_tx_add_range(map.oid, offsetof(struct btree_map, root), sizeof(map->root));
+			PM_EQU(D_RW(map)->root, up);
 			n = up;
 			// BUG //
 		}
@@ -60,4 +61,6 @@ btree_map_find_dest_node(TOID(struct btree_map) map,
 }
 ```
 
-Now the bug has been fixed and the assignment `PM_EQU(D_RW(map)->root, up);` has been corrected to `PM_EQU(map->root, up);`.
+In the corrected code, we added the line `pmemobj_tx_add_range(map.oid, offsetof(struct btree_map, root), sizeof(map->root));` before the assignment `PM_EQU(D_RW(map)->root, up);`. This line adds the range of memory containing the `root` field of the `map` object to the transaction, ensuring that the assignment is persisted to the persistent memory.
+
+Now the assignment to the `root` field will be persisted correctly and the bug will be fixed.

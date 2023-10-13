@@ -66,4 +66,4 @@ TX_ADD_DIRECT(D_RW(D_RO(D_RO(NODE_PARENT_AT(n, !c)))->slots[RB_RIGHT]));
 TX_ADD_DIRECT(D_RW(D_RO(D_RO(NODE_PARENT_AT(n, !c)))->slots[RB_LEFT]));
 TX_ADD_DIRECT(D_RW(D_RO(D_RO(NODE_PARENT_AT(n, !c)))->slots[!c]));
 ```
-These lines add the necessary direct pointers to the transaction system to ensure that the modifications made to the relevant data structures are properly recorded and persisted in the persistent memory pool. By adding these lines, the transaction system will correctly track and persist the changes made to the data structures, ensuring data consistency and durability.
+These lines add the necessary direct pointers to the transaction system to ensure that the modifications made to the variables are properly recorded and persisted in the persistent memory pool. By adding these lines, the transaction system will track the changes made to these variables and ensure their durability in case of a transaction abort.

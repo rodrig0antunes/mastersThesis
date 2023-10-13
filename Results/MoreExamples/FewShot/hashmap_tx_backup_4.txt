@@ -26,9 +26,9 @@ hm_tx_remove(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint64_t key)
 
 	TX_BEGIN(pop) {
 		if (TOID_IS_NULL(prev))
-			TX_ADD_FIELD(D_RW(buckets), bucket[h]);
+			TX_ADD_FIELD(D_RW(hashmap)->buckets, bucket[h]);
 		else
-			TX_ADD_FIELD(D_RW(prev), next);
+			TX_ADD_FIELD(prev, next);
 
 		if (TOID_IS_NULL(prev))
 			PM_EQU(D_RW(buckets)->bucket[h], D_RO(var)->next);

@@ -1,6 +1,8 @@
 To resolve the bug, we need to set the offset of `D_RW(hashmap)->buckets_tmp` to 0. 
 
-Here is the corrected code:
+To do this, we can use the `pmemobj_tx_add_range()` function to add `D_RW(hashmap)->buckets_tmp` to the transaction and then set the offset to 0.
+
+Here's the corrected code:
 
 ``` C
 /*
@@ -43,12 +45,14 @@ hm_atomic_rebuild_finish(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap)
 	 * See recovery process in hm_init and TOID_IS_NULL macro definition.
 	 */
 			
-	// Set offset of D_RW(hashmap)->buckets_tmp to 0
+	// BUG //
+	pmemobj_tx_add_range(pop, &D_RW(hashmap)->buckets_tmp.oid.off, sizeof(D_RW(hashmap)->buckets_tmp.oid.off));
 	D_RW(hashmap)->buckets_tmp.oid.off = 0;
-		
+	// BUG //
+
 	PMTest_isPersistent(&D_RW(hashmap)->buckets, sizeof(D_RW(hashmap)->buckets));
 	PMTest_isPersistent(&D_RW(hashmap)->buckets_tmp, sizeof(D_RW(hashmap)->buckets_tmp));
 }
 ```
 
-Now the bug has been fixed.
+In the corrected code, we added the `pmemobj_tx_add_range()` function to add `D_RW(hashmap)->buckets_tmp.oid.off` to the transaction. Then, we set the offset to 0 using `D_RW(hashmap)->buckets_tmp.oid.off = 0`.

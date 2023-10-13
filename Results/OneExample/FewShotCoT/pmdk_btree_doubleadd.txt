@@ -169,4 +169,13 @@ int main(int argc, const char *argv[]) {
 
 	uint64_t old_nkeys = nkeys;
 
-	/* tree
+	/* tree should be empty */
+	map_foreach(mapc, D_RW(root)->map, dec_keys, NULL);
+	assert(old_nkeys == nkeys);
+
+	map_ctx_free(mapc);
+	pmemobj_close(pop);
+
+	return 0;
+}
+'''.

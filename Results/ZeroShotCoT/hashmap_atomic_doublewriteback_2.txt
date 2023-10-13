@@ -1,8 +1,8 @@
 To resolve the bug, we need to fix the code inside the delimited area. 
 
-Looking at the code, it seems that the bug is related to updating the count of the hashmap after removing an entry. The code currently subtracts 1 from the count, but it doesn't persist the change to persistent memory.
+Looking at the code, it seems that the bug is related to updating the count of the hashmap after removing an entry. The code tries to decrement the count by 1, but it is not done correctly.
 
-To fix this, we need to add a call to `pmemobj_persist` after updating the count. This will ensure that the change is persisted to persistent memory.
+To fix this, we need to update the count of the hashmap correctly. We can do this by using the atomic_fetch_sub function provided by the PMDK library. This function atomically subtracts a value from a variable and returns the original value.
 
 Here's the corrected code:
 
@@ -41,8 +41,8 @@ hm_atomic_remove(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 		return OID_NULL;
 	}
 		
-	// Update the count and persist the change
-	PM_EQU(D_RW(hashmap)->count, D_RO(hashmap)->count - 1);
+	// Update the count of the hashmap correctly
+	PM_EQU(D_RW(hashmap)->count, atomic_fetch_sub(&D_RW(hashmap)->count, 1));
 	pmemobj_persist(pop, &D_RW(hashmap)->count,
 			sizeof(D_RW(hashmap)->count));
 
@@ -64,4 +64,4 @@ hm_atomic_remove(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 }
 ```
 
-This should fix the bug and ensure that the count is correctly updated and persisted to persistent memory.
+This should fix the bug and correctly update the count of the hashmap after removing an entry.

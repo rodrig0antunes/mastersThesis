@@ -49,8 +49,8 @@ In the example, there are two bugs to repair, located in the areas of the code d
 
 In the correction of the example, the bug fixes are put in the areas of the code delimited by the two `// BUG //` expressions.
 
-In the first bug fix, the line `PM_EQU(D_RW(new_node)->entries[!d], *p);` is added to insert the found destination in the other slot. This line assigns the value of `*p` to `D_RW(new_node)->entries[!d]`, ensuring that the entry is properly inserted in the correct slot.
+In the first bug fix, the line `PM_EQU(D_RW(new_node)->entries[!d], *p);` is added to insert the found destination in the other slot. This line assigns the value of `*p` to `D_RW(new_node)->entries[!d]`, ensuring that the correct destination is inserted in the other slot.
 
-In the second bug fix, the line `pmemobj_tx_add_range_direct(new_node, sizeof(*new_node));` is added to register the `new_node` object as part of the transaction. This ensures that any changes made to `new_node` are properly recorded and persisted in the persistent memory pool.
+In the second bug fix, the line `pmemobj_tx_add_range_direct(new_node, sizeof(*new_node));` is added to register the `new_node` object as part of the transaction. This line ensures that any changes made to `new_node` are properly recorded and persisted in the persistent memory pool.
 
 By adding these bug fixes, the program will correctly insert a new leaf at the specified position in the persistent memory tree map.

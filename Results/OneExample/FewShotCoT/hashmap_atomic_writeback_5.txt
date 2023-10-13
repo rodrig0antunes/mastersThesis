@@ -72,10 +72,10 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 ```
 
 ### Explanation
-In the given code, there are two bugs to fix, which are located in the area of the code delimited by the two '// BUG //' expressions.
+In the given code, there are two bugs to fix, both located in the area of the code delimited by the two '// BUG //' expressions.
 
-In the correction, the first bug fix is to add the line `pmemobj_persist(pop, &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));` after the assignment `D_RW(hashmap)->count_dirty = 0;`. This ensures that the value of `D_RW(hashmap)->count_dirty` is durably stored in the persistent memory pool.
+1. The first bug is fixed by adding the line `pmemobj_persist(pop, &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));` after the assignment `D_RW(hashmap)->count_dirty = 0;`. This ensures that the value of `D_RW(hashmap)->count_dirty` is durably stored in the persistent memory pool.
 
-The second bug fix is to add the line `pmemobj_persist(pop, &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));` after the assignment `D_RW(hashmap)->count_dirty = 0;`. This ensures that the value of `D_RW(hashmap)->count_dirty` is durably stored in the persistent memory pool.
+2. The second bug is fixed by adding the line `pmemobj_persist(pop, &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));` after the assignment `D_RW(hashmap)->count_dirty = 0;`. This ensures that the value of `D_RW(hashmap)->count_dirty` is durably stored in the persistent memory pool.
 
-By adding `pmemobj_persist(pop, &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));` and `pmemobj_persist(pop, &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));`, it is guaranteed that the assignments to `D_RW(hashmap)->count_dirty` and `D_RW(hashmap)->count_dirty` are properly preserved, and the data remains consistent. These corrections ensure data durability in persistent memory.
+By adding `pmemobj_persist(pop, &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));` after each assignment, it is guaranteed that the changes to `D_RW(hashmap)->count_dirty` and `D_RW(hashmap)->count` are properly preserved, and the data remains consistent. This correction ensures data durability in persistent memory.

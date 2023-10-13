@@ -48,9 +48,8 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 
 	TX_BEGIN(pop) {
 		TX_ADD_FIELD_DIRECT(D_RW(hashmap), count);
-		D_RW(hashmap)->count += 1;
+		D_RW(hashmap)->count = (D_RW(hashmap)->count + 1);
 	} TX_END;
-	
 	pmemobj_persist(pop, &D_RW(hashmap)->count,
 			sizeof(D_RW(hashmap)->count));
 
@@ -61,7 +60,6 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 		TX_ADD_FIELD_DIRECT(D_RW(hashmap), count_dirty);
 		D_RW(hashmap)->count_dirty = 0;
 	} TX_END;
-	
 	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
 			sizeof(D_RW(hashmap)->count_dirty));
 

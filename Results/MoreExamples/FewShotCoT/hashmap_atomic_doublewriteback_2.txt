@@ -1,4 +1,4 @@
-### Correction
+### Corrected Persistent Memory Program
 
 ``` C
 /*
@@ -62,10 +62,12 @@ hm_atomic_remove(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 ```
 
 ### Explanation
-In the example, there are two bugs to fix, both located in the area of the code delimited by the two '// BUG //' expressions.
+In the example, there are two bugs to repair, located in the areas of the code delimited by the '// BUG //' expressions.
 
-1. The first bug is that the line `pmemobj_persist(pop, &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));` is duplicated. One of the duplicates has been removed in the correction. Having duplicate `pmemobj_persist` calls for the same data is unnecessary and can lead to performance issues.
+In the correction of the example, the bug fixes are put in the areas of the code delimited by the '// BUG //' expressions.
 
-2. The second bug is that there is a missing `pmemobj_persist` call after updating the `count_dirty` field. In the correction, the missing `pmemobj_persist` call has been added to ensure that the update to `count_dirty` is persisted in the persistent memory pool.
+For the first bug, the redundant 'pmemobj_persist(pop, &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));' call has been removed. It is unnecessary to persist the same data twice, so the redundant call is eliminated.
 
-By fixing these bugs, the program will correctly update the `count` and `count_dirty` fields and persist the changes in the persistent memory pool.
+For the second bug, the 'PMTest_isPersistedBefore(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty), &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));' call has been moved to the correct position after the 'pmemobj_persist(pop, &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));' call. This ensures that the data is persisted before the check is made.
+
+The correction ensures that the necessary data is correctly persisted in the persistent memory pool and that the program behaves as expected.

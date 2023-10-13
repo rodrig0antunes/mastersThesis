@@ -1,8 +1,8 @@
-To resolve the bug, we need to fix the code within the "// BUG //" section. 
+To resolve the bug, we need to fix the code inside the "// BUG //" section. 
 
-Looking at the code, it seems that the bug is related to the assignment of the new root node to the map. The correct code should assign the new root node to the map using the TX_ADD_FIELD macro.
+The bug is that the assignment of the new root node `up` to `map->root` is not being persisted. To fix this, we need to use the `PM_EQU` macro to persist the assignment.
 
-Here's the corrected code:
+Here is the corrected code:
 
 ``` C
 /*
@@ -62,4 +62,4 @@ btree_map_find_dest_node(TOID(struct btree_map) map,
 }
 ```
 
-This should fix the bug in the code.
+Now the assignment of `up` to `map->root` is persisted correctly.

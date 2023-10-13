@@ -32,4 +32,4 @@ btree_map_rotate_right(TOID(struct tree_map_node) rsb,
 }
 ```
 
-In the corrected program, the bugs have been fixed by adding the necessary transactional memory operations (TX_ADD_FIELD) and persistent memory operations (PM_EQU) to ensure that the changes made to the persistent memory are durable.
+In the corrected program, the bugs have been fixed by adding the necessary transactional operations (`TX_ADD_FIELD`) and persistent memory operations (`PM_EQU`) to ensure that the changes made to the persistent memory are durable.

@@ -1,6 +1,6 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
 
-''' C
+``` C
 /*
  * ctree_map_insert_leaf -- (internal) inserts a new leaf at the position
  */
@@ -44,12 +44,10 @@ ctree_map_insert_leaf(struct tree_map_entry *p,
 		// BUG //
 
 }
-'''.
+```
 
 ### Explanation
-In the example, there are two bugs to repair, located in the area of the code delimited by the two '// BUG //' expressions. 
+In the example, there are two bugs to repair, located in the area of the code delimited by the two '// BUG //' expressions.
 In the correction of the example, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
-In the correction, the first bug fix is to add the missing 'sizeof(D_RW(new_node)->entries[!d])' argument to the 'pmemobj_tx_add_range_direct()' function call. 
-This ensures that the entire range of memory occupied by 'D_RW(new_node)->entries[!d]' is added to the transaction.
-The second bug fix is to change the 'pmemobj_tx_add_range_direct(p, sizeof(*p))' function call to 'pmemobj_tx_add_range_direct(&D_RW(new_node)->entries[!d], sizeof(D_RW(new_node)->entries[!d]))'. 
-This ensures that the entire range of memory occupied by 'D_RW(new_node)->entries[!d]' is added to the transaction.
+In the correction, the first bug fix is to add the missing 'sizeof' operator in the 'pmemobj_tx_add_range_direct' call. The correct call should be 'pmemobj_tx_add_range_direct(&D_RW(new_node)->entries[!d], sizeof(D_RW(new_node)->entries[!d]));'. This ensures that the correct range is added to the transaction.
+The second bug fix is to add the missing 'sizeof' operator in the 'pmemobj_tx_add_range_direct' call. The correct call should be 'pmemobj_tx_add_range_direct(p, sizeof(*p));'. This ensures that the correct range is added to the transaction.

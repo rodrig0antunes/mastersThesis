@@ -63,8 +63,6 @@ btree_map_find_dest_node(TOID(struct btree_map) map,
 ### Explanation
 In the given code, there are two bugs to fix, both located in the area of the code delimited by the two `// BUG //` expressions.
 
-In the first bug fix, a new line `TX_ADD_DIRECT(map);` is added before assigning the new root node `up` to `D_RW(map)->root`. This line tells the transaction system that it is intended to modify the `map` pointer during the transaction. By adding `TX_ADD_DIRECT(map);`, the transaction system ensures that the assignment of the new root node `up` to `D_RW(map)->root` is properly recorded.
+In the correction, the first bug fix is to add the line `TX_ADD_DIRECT(map);` before assigning the new root node `up` to `D_RW(map)->root`. This line tells the transaction system that it is intended to modify the `map` pointer during the transaction. By adding `TX_ADD_DIRECT(map);`, the transaction system ensures that the assignment of the new root node `up` to `D_RW(map)->root` is properly recorded. If the transaction is successful, this change will be committed, and if the transaction aborts, it will be rolled back, maintaining the consistency of the persistent memory data structure.
 
-In the second bug fix, the line `PM_EQU(D_RW(map)->root, up);` is replaced with `PM_EQU(D_RW(map)->root, up);`. This line assigns the new root node `up` to `D_RW(map)->root`, which is the correct assignment.
-
-By making these bug fixes, the program ensures that the modifications to the `map` pointer and the assignment of the new root node are properly recorded in the transaction system. This ensures the consistency of the persistent memory data structures.
+The second bug fix is to remove the line `PM_EQU(D_RW(map)->root, up);` after the first `// BUG //` expression. This line is redundant and unnecessary since the assignment of the new root node `up` to `D_RW(map)->root` is already done correctly after the second `// BUG //` expression.

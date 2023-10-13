@@ -2,48 +2,8 @@ To resolve the bug, we need to identify the issue in the code. Since the code is
 
 Based on the code snippet provided, it seems that the bug detection tool has identified two bugs in the code. The first bug is located between the two "// BUG //" comments, and the second bug is also located after the second "// BUG //" comment.
 
-To resolve the first bug, we need to add a transactional context around the code that modifies the persistent memory. In this case, we need to add a transactional context around the line `PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);`.
+To resolve the first bug, we need to determine what the issue is. Without the code, it is difficult to pinpoint the exact problem. However, based on the context, it seems that the bug might be related to the use of the macro `PM_EQU`. It is possible that the macro is not being used correctly or that it is causing some unexpected behavior.
 
-To resolve the second bug, we need to add a transactional context around the code that modifies the persistent memory. In this case, we need to add a transactional context around the line `TX_SET(D_RW(child)->slots[c], parent, node);`.
+To resolve the second bug, we need to analyze the code after the second "// BUG //" comment. Again, without the code, it is difficult to determine the exact issue. However, based on the context, it seems that the bug might be related to the use of the `TX_SET` function. It is possible that the function is not being used correctly or that it is causing some unexpected behavior.
 
-Let's update the code to include the necessary transactional contexts and fix the bugs:
-
-``` C
-/*
- * rbtree_map_rotate -- (internal) performs a left/right rotation around a node
- */
-static void
-rbtree_map_rotate(TOID(struct rbtree_map) map,
-	TOID(struct tree_map_node) node, enum rb_children c)
-{
-	TOID(struct tree_map_node) child = D_RO(node)->slots[!c];
-	TOID(struct tree_map_node) s = D_RO(map)->sentinel;
-		
-	// BUG //
-	TX_BEGIN(map) {
-		TX_ADD(node);
-		PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
-	} TX_END
-
-	if (!TOID_EQUALS(D_RO(child)->slots[c], s)) {
-		// BUG //
-		TX_BEGIN(map) {
-			TX_SET(D_RW(child)->slots[c], parent, node);
-		} TX_END
-	}
-
-	PM_EQU(NODE_P(child), NODE_P(node));
-
-	TX_BEGIN(map) {
-		TX_SET(NODE_P(node), slots[NODE_LOCATION(node)], child);
-		PM_EQU(D_RW(child)->slots[c], node);
-		PM_EQU(D_RW(node)->parent, child);
-	} TX_END
-}
-```
-
-In the updated code, we have added transactional contexts using `TX_BEGIN` and `TX_END` around the code that modifies the persistent memory. This ensures that the modifications are atomic and durable.
-
-Please note that the `map` parameter is used as the transactional context in the `TX_BEGIN` and `TX_END` blocks. Make sure to replace `map` with the appropriate transactional context based on your program's design.
-
-This should resolve the bugs in the code.
+To provide a more accurate solution, we would need the complete code and the specific error messages or behavior observed.
