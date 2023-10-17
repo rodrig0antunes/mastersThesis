@@ -30,8 +30,8 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 	int ret = 0;
 	TX_BEGIN(pop) {
 
-		TX_ADD_FIELD(buckets, bucket[h]);
 		TX_ADD_FIELD(hashmap, count);
+		TX_ADD_FIELD(buckets, bucket[h]);
 
 		// BUG //
 		
@@ -67,10 +67,9 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 ```
 
 ### Explanation
-In the example, the bug to repair is located in the area of the code delimited by the two '// BUG //' expressions. 
-In the correction of the example, the bug fix is put in the area of the code delimited by the two '// BUG //' expressions.
-In the correction, two lines are added to register the modifications made to the 'buckets' and 'count' fields of the 'hashmap' struct in the transaction system. 
-The line 'TX_ADD_FIELD(buckets, bucket[h]);' registers the modification made to the 'bucket[h]' field of the 'buckets' struct. 
-The line 'TX_ADD_FIELD(hashmap, count);' registers the modification made to the 'count' field of the 'hashmap' struct. 
-By adding these two lines, the transaction system ensures that the changes made to these fields are properly recorded. 
+In the example, there are two bugs to repair, located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, two new lines 'TX_ADD_FIELD(hashmap, count);' and 'TX_ADD_FIELD(buckets, bucket[h]);' are added before allocating memory for the new struct 'entry'. 
+These lines tell the transaction system that it is intended to modify the 'count' field of the 'hashmap' struct and the 'bucket[h]' field of the 'buckets' struct during the transaction. 
+By adding these lines, the transaction system ensures that the changes to these fields are properly recorded. 
 If the transaction is successful, these changes will be committed, and if the transaction aborts, they will be rolled back, maintaining the consistency of your persistent memory data structures.

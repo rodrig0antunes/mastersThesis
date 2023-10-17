@@ -29,17 +29,15 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 	int ret = 0;
 	TX_BEGIN(pop) {
 
-		TX_ADD_FIELD(buckets, bucket[h]);
 		TX_ADD_FIELD(hashmap, count);
 
 		TOID(struct entry) e = TX_NEW(struct entry);
-		PMTest_assign(&(D_RW(e)->key), sizeof(struct entry));
-		(D_RW(e)->key) = (key);
-		(D_RW(e)->value) = (value);
-		(D_RW(e)->next) = (D_RO(buckets)->bucket[h]);
-
-		PM_EQU((D_RW(buckets)->bucket[h]), (e));
-		PM_EQU((D_RW(hashmap)->count), (D_RO(hashmap)->count+1));
+		(D_RW(e)->key) = key;
+		(D_RW(e)->value) = value;
+		(D_RW(e)->next) = D_RO(buckets)->bucket[h];
+		
+		PM_EQU((D_RW(buckets)->bucket[h]), e);
+		PM_EQU((D_RW(hashmap)->count), D_RO(hashmap)->count+1);
 		num++;
 	} TX_ONABORT {
 		fprintf(stderr, "transaction aborted: %s\n",
@@ -58,5 +56,3 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 	return 0;
 }
 ```
-
-In the corrected program, the bugs have been fixed. The first bug was that the `TX_ADD_FIELD` macro was commented out for the `buckets` and `count` fields. These macros are necessary to track changes to these fields in the transaction. The second bug was that the `PM_EQU` macro was commented out for the assignment of the `e` variable. This macro is necessary to persistently assign the value of `e` to the `bucket[h]` field.

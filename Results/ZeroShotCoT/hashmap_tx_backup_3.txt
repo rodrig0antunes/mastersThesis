@@ -1,26 +1,6 @@
-To resolve the bug, we need to fix the code inside the `TX_BEGIN` and `TX_END` blocks. 
+To resolve the bug, we need to add the necessary transactional annotations to the code. 
 
-Here are the steps to fix the bug:
-
-1. Uncomment the line `TX_ADD_FIELD(buckets, bucket[h]);` to add the `bucket[h]` field to the transaction.
-
-2. Uncomment the line `TX_ADD_FIELD(hashmap, count);` to add the `count` field of the `hashmap` to the transaction.
-
-3. Replace the line `TOID(struct entry) e = TX_NEW(struct entry);` with `TOID(struct entry) e = TX_NEW(struct entry);` to allocate a new entry in the transactional memory.
-
-4. Replace the line `PMTest_assign(&(D_RW(e)->key), sizeof(struct entry));` with `TX_ADD_DIRECT(&(D_RW(e)->key));` to add the `key` field of the new entry to the transaction.
-
-5. Replace the line `(D_RW(e)->key) = (key);` with `D_RW(e)->key = key;` to assign the `key` value to the new entry.
-
-6. Replace the line `(D_RW(e)->value) = (value);` with `D_RW(e)->value = value;` to assign the `value` to the new entry.
-
-7. Replace the line `(D_RW(e)->next) = (D_RO(buckets)->bucket[h]);` with `D_RW(e)->next = D_RO(buckets)->bucket[h];` to assign the `bucket[h]` value to the `next` field of the new entry.
-
-8. Replace the line `PM_EQU((D_RW(buckets)->bucket[h]), (e));` with `D_RW(buckets)->bucket[h] = e;` to assign the new entry to the `bucket[h]` field.
-
-9. Replace the line `PM_EQU((D_RW(hashmap)->count), (D_RW(hashmap)->count+1));` with `D_RW(hashmap)->count = D_RW(hashmap)->count + 1;` to increment the `count` field of the `hashmap` by 1.
-
-Here is the corrected code:
+Here is the corrected version of the code:
 
 ``` C
 /*
@@ -51,17 +31,17 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 	int ret = 0;
 	TX_BEGIN(pop) {
 
-		TX_ADD_FIELD(buckets, bucket[h]);
 		TX_ADD_FIELD(hashmap, count);
 
 		TOID(struct entry) e = TX_NEW(struct entry);
-		TX_ADD_DIRECT(&(D_RW(e)->key));
-		D_RW(e)->key = key;
-		D_RW(e)->value = value;
-		D_RW(e)->next = D_RO(buckets)->bucket[h];
+		TX_MEMCPY(D_RW(&D_RW(e)->key), &key, sizeof(uint64_t));
+		TX_MEMCPY(D_RW(&D_RW(e)->value), &value, sizeof(PMEMoid));
+		TX_MEMCPY(D_RW(&D_RW(e)->next), &D_RO(buckets)->bucket[h], sizeof(TOID(struct entry)));
 
+		D_RW(e)->next = D_RO(buckets)->bucket[h];
 		D_RW(buckets)->bucket[h] = e;
-		D_RW(hashmap)->count = D_RW(hashmap)->count + 1;
+		D_RW(hashmap)->count = D_RO(hashmap)->count + 1;
+
 		num++;
 	} TX_ONABORT {
 		fprintf(stderr, "transaction aborted: %s\n",
@@ -81,4 +61,4 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 }
 ```
 
-Now the bug should be fixed and the program should work as expected.
+In the corrected code, we have replaced the `PMTest_assign` macro with `TX_MEMCPY` to correctly copy the values into the persistent memory. We have also added the necessary transactional annotations using `TX_BEGIN`, `TX_ADD_FIELD`, `TX_NEW`, and `TX_MEMCPY` to ensure the changes are made atomically.

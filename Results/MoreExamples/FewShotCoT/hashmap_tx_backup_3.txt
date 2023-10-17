@@ -30,17 +30,22 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 	int ret = 0;
 	TX_BEGIN(pop) {
 
-		TX_ADD_FIELD(buckets, bucket[h]);
 		TX_ADD_FIELD(hashmap, count);
 
 		// BUG //
 		
 		TOID(struct entry) e = TX_NEW(struct entry);
-		(D_RW(e)->key) = key;
-		(D_RW(e)->value) = value;
-		(D_RW(e)->next) = D_RO(buckets)->bucket[h];
-		D_RW(buckets)->bucket[h] = e;
-		D_RW(hashmap)->count++;
+		PMTest_assign(&(D_RW(e)->key), sizeof(struct entry));
+		(D_RW(e)->key) = (key);
+		(D_RW(e)->value) = (value);
+		(D_RW(e)->next) = (D_RO(buckets)->bucket[h]);
+		/*
+		PM_EQU((D_RW(e)->key), (key));
+		PM_EQU((D_RW(e)->value), (value));
+		PM_EQU((D_RW(e)->next), (D_RO(buckets)->bucket[h]));
+		*/
+		PM_EQU((D_RW(buckets)->bucket[h]), (e));
+		PM_EQU((D_RW(hashmap)->count), (D_RW(hashmap)->count+1));
 		num++;
 	} TX_ONABORT {
 		fprintf(stderr, "transaction aborted: %s\n",
@@ -61,13 +66,9 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 ```
 
 ### Explanation
-In the example, there are two bugs to repair, located in the area of the code delimited by the two '// BUG //' expressions. 
-In the correction of the example, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
-In the correction, the following changes are made:
-1. The line 'TX_ADD_FIELD(buckets, bucket[h]);' is added to register the modification of the 'bucket[h]' field of the 'buckets' struct in the transaction.
-2. The line 'TX_ADD_FIELD(hashmap, count);' is added to register the modification of the 'count' field of the 'hashmap' struct in the transaction.
-3. The line 'PMTest_assign(&(D_RW(e)->key), sizeof(struct entry));' is removed as it is not necessary.
-4. The lines 'PM_EQU((D_RW(e)->key), (key));', 'PM_EQU((D_RW(e)->value), (value));', and 'PM_EQU((D_RW(e)->next), (D_RO(buckets)->bucket[h]));' are removed as they are not necessary.
-5. The line 'PM_EQU((D_RW(buckets)->bucket[h]), (e));' is replaced with 'D_RW(buckets)->bucket[h] = e;' to assign the new entry 'e' to the 'bucket[h]' field.
-6. The line 'PM_EQU((D_RW(hashmap)->count), (D_RW(hashmap)->count+1));' is replaced with 'D_RW(hashmap)->count++;' to increment the count of the hashmap.
-By making these changes, the bugs in the code are fixed, and the program should work as expected.
+In the example, the bug to repair is located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fix is put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, the line 'TX_ADD_FIELD(hashmap, count);' is added before allocating memory for the new struct 'entry'. 
+This line tells the transaction system that it is intended to modify the 'count' field of the 'hashmap' struct during the transaction. It essentially registers 'count' as a part of the transaction, making sure that if the transaction aborts, the changes to 'count' are rolled back as well.
+By adding 'TX_ADD_FIELD(hashmap, count);', the transaction system ensures that the assignment of the new struct 'entry' to 'buckets' is properly recorded. 
+If the transaction is successful, this change will be committed, and if the transaction aborts, it will be rolled back, maintaining the consistency of your persistent memory data structures.

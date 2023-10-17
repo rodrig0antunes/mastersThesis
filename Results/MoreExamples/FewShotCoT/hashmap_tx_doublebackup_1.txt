@@ -32,6 +32,7 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 		// BUG //
 			
 		TX_ADD_FIELD(D_RW(buckets)->bucket[h], next);
+
 		TX_ADD_FIELD(hashmap, count);
 		
 		TOID(struct entry) e = TX_NEW(struct entry);
@@ -42,7 +43,11 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 		(D_RW(e)->key) = (key);
 		(D_RW(e)->value) = (value);
 		(D_RW(e)->next) = (D_RO(buckets)->bucket[h]);
-		
+		/*
+		PM_EQU((D_RW(e)->key), (key));
+		PM_EQU((D_RW(e)->value), (value));
+		PM_EQU((D_RW(e)->next), (D_RO(buckets)->bucket[h]));
+		*/
 		PM_EQU((D_RW(buckets)->bucket[h]), (e));
 		PM_EQU((D_RW(hashmap)->count), (D_RO(hashmap)->count+1));
 		num++;
@@ -65,10 +70,9 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 ```
 
 ### Explanation
-In the example, there are two bugs to repair, located in the areas of the code delimited by the '// BUG //' expressions.
-
-1. In the first bug fix, the 'TX_ADD_FIELD(D_RO(hashmap)->buckets, bucket[h]);' statement has been replaced with 'TX_ADD_FIELD(D_RW(buckets)->bucket[h], next);'. The correct way to add the 'next' field of the 'bucket[h]' entry to the transaction is by using 'D_RW(buckets)->bucket[h]' instead of 'D_RO(hashmap)->buckets'.
-
-2. In the second bug fix, the 'TX_ADD_FIELD(hashmap, count);' statement has been removed. The 'count' field of the 'hashmap' does not need to be added to the transaction because it is already added in the previous line.
-
-These bug fixes ensure that the correct fields are added to the transaction and preserve the intended behavior of the code.
+In the example, there are two bugs to repair, both located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, the first bug fix is to change the 'TX_ADD_FIELD(D_RO(hashmap)->buckets, bucket[h]);' statement to 'TX_ADD_FIELD(D_RW(buckets)->bucket[h], next);'. 
+This change correctly adds the 'next' field of the 'bucket[h]' entry to the transaction, ensuring that modifications to this field are persistent.
+The second bug fix is to remove the duplicate 'TX_ADD_FIELD(hashmap, count);' statement. The 'count' field of the 'hashmap' structure is already added to the transaction before the 'TX_NEW' call, so the duplicate statement is unnecessary and can be removed.
+These bug fixes ensure that the modifications made to the 'buckets' and 'count' fields are correctly added to the transaction and persisted in the persistent memory.

@@ -28,14 +28,11 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 
 	int ret = 0;
 	TX_BEGIN(pop) {
-
-		// BUG //
 		TX_ADD_FIELD(D_RW(hashmap)->buckets, bucket[h]);
-		TX_ADD_FIELD(D_RW(hashmap), count);
+		TX_ADD_FIELD(hashmap, count);
 		
 		TOID(struct entry) e = TX_NEW(struct entry);
-			
-		// BUG //
+		
 		PMEMoid_assign(&(D_RW(e)->key), sizeof(struct entry));
 		(D_RW(e)->key) = key;
 		(D_RW(e)->value) = value;
@@ -61,16 +58,3 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 	return 0;
 }
 ```
-The corrected code includes the following changes:
-
-1. In the first bug, the `TX_ADD_FIELD` macro is used to add the `bucket[h]` field of the `buckets` object to the transaction. This ensures that any modifications to this field are persistent. 
-
-2. In the second bug, the `PMTest_assign` macro is replaced with the `PMEMoid_assign` macro to assign the `key` value to the `e` object. This ensures that the `key` value is correctly assigned to the persistent memory object. 
-
-3. The assignment of `value` to `e->value` is corrected by removing the unnecessary parentheses. 
-
-4. The assignment of `D_RO(buckets)->bucket[h]` to `e->next` is corrected by removing the unnecessary parentheses. 
-
-5. The `PM_EQU` macro is replaced with direct assignments to update the `bucket[h]` and `count` fields of the `hashmap` object. 
-
-These changes fix the bugs in the code and ensure that the modifications to the persistent memory objects are correctly persisted.

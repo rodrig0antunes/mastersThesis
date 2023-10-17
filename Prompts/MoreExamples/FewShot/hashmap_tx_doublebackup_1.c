@@ -210,7 +210,7 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 		// BUG //
 			
 		TX_ADD_FIELD(D_RO(hashmap)->buckets, bucket[h]);
-		//TX_ADD_FIELD(buckets, bucket[h]);
+
 		TX_ADD_FIELD(hashmap, count);
 		TX_ADD_FIELD(hashmap, count);
 		
