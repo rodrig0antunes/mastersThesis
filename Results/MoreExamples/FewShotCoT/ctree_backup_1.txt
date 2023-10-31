@@ -1,4 +1,5 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * ctree_map_remove -- removes key-value pair from the map
@@ -20,8 +21,8 @@ ctree_map_remove(PMEMobjpool *pop, TOID(struct ctree_map) map, uint64_t key)
 		TX_BEGIN(pop) {
 			pmemobj_tx_add_range_direct(leaf, sizeof(*leaf));
 			leaf->key = 0;
-			leaf->slot = OID_NULL;
 		} TX_END
+		leaf->slot = OID_NULL;
 		
 		// BUG //
 
@@ -51,6 +52,8 @@ ctree_map_remove(PMEMobjpool *pop, TOID(struct ctree_map) map, uint64_t key)
 '''.
 
 ## Explanation
-In the correction, the lines 'PM_EQU(leaf->key, 0);' and 'PM_EQU(leaf->slot, OID_NULL);' are replaced with 'leaf->key = 0;' and 'leaf->slot = OID_NULL;' respectively. 
-The 'PM_EQU' macro is not a valid function or macro in the PMDK library. Instead, the correct way to assign values to the 'leaf->key' and 'leaf->slot' variables is to directly assign the values using the assignment operator '='. 
-By making this correction, the program correctly assigns the value 0 to 'leaf->key' and OID_NULL to 'leaf->slot' within the transaction block, ensuring that the changes are properly recorded and persisted in the persistent memory pool.
+In the example, there are two bugs to repair, located in the areas of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fixes are put in the areas of the code delimited by the two '// BUG //' expressions.
+In the first bug fix, the line 'PM_EQU(leaf->key, 0);' is replaced with 'leaf->key = 0;'. This change correctly assigns the value 0 to the 'key' field of the 'leaf' struct.
+In the second bug fix, the line 'PM_EQU(leaf->slot, OID_NULL);' is replaced with 'leaf->slot = OID_NULL;'. This change correctly assigns the value 'OID_NULL' to the 'slot' field of the 'leaf' struct.
+These bug fixes ensure that the modifications to the 'leaf' struct are properly recorded and persisted in the persistent memory pool.

@@ -1,5 +1,6 @@
-## Correction
-''' C
+### CORRECTED PERSISTENT MEMORY PROGRAM
+
+``` C
 /*
  * hm_atomic_insert -- inserts specified value into the hashmap,
  * returns:
@@ -23,12 +24,14 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 		num++;
 	}
 		
-	// BUG //
+		// BUG //
+		
 	PM_EQU(D_RW(hashmap)->count_dirty, 1);
 	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
 			sizeof(D_RW(hashmap)->count_dirty));
-	// BUG //
 		
+		// BUG //
+
 	struct entry_args args = {
 		.key = key,
 		.value = value,
@@ -67,8 +70,10 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 
 	return 0;
 }
-'''.
+```
 
-## Explanation
-In the correction, the redundant 'pmemobj_persist(pop, &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));' call has been removed.
-By removing the redundant 'pmemobj_persist(pop, &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));' call, the unnecessary overhead is eliminated, while still maintaining the correct behaviour of persisting the 'count_dirty' field, ensuring that this specific data is correctly persisted in the persistent memory pool.
+### Explanation
+In the incorrect program, there are two bugs located in the area of the code delimited by the two '// BUG //' expressions.
+In the corrected program, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, one of the 'pmemobj_persist(pop, &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));' calls has been removed because it is redundant.
+By removing the redundant 'pmemobj_persist(pop, &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));' call, the unnecessary overhead is eliminated, while still maintaining the correct behavior of persisting the 'count_dirty' field, ensuring that this specific data is correctly persisted in the persistent memory pool.

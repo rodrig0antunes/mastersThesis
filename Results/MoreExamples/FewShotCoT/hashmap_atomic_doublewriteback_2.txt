@@ -1,4 +1,5 @@
-### CORRECTED PERSISTENT MEMORY PROGRAM
+### Corrected Persistent Memory Program
+
 ``` C
 /*
  * hm_atomic_remove -- removes specified value from the hashmap,
@@ -35,6 +36,7 @@ hm_atomic_remove(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 	}
 		
 	// BUG //
+		
 	PM_EQU(D_RW(hashmap)->count, D_RO(hashmap)->count - 1);
 	pmemobj_persist(pop, &D_RW(hashmap)->count,
 			sizeof(D_RW(hashmap)->count));
@@ -60,4 +62,12 @@ hm_atomic_remove(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 ```
 
 ### Explanation
-In the corrected program, the two "// BUG //" expressions have been removed. These expressions were mistakenly placed in the code and were not necessary. By removing them, the program will execute correctly without any errors.
+In the example, there are two bugs to repair, located in the areas of the code delimited by the '// BUG //' expressions.
+
+In the correction of the example, the bug fixes are put in the areas of the code delimited by the '// BUG //' expressions.
+
+For the first bug, the redundant 'pmemobj_persist(pop, &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));' call has been removed. It is unnecessary to persist the same data twice, so the redundant call is eliminated.
+
+For the second bug, the 'PMTest_isPersistedBefore(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty), &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));' call has been moved to the correct position after the 'pmemobj_persist(pop, &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));' call. This ensures that the data is persisted before the check is made.
+
+The correction ensures that the necessary data is correctly persisted in the persistent memory pool and that the program behaves as expected.

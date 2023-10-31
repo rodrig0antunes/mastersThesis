@@ -1,5 +1,6 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
-''' C
+
+``` C
 /*
  * btree_map_merge -- (internal) merges node and right sibling
  */
@@ -25,9 +26,9 @@ btree_map_merge(TOID(struct btree_map) map, TOID(struct tree_map_node) rn,
 
 	TX_FREE(rn); /* right node is now empty */
 
-	TX_ADD(parent);
 	PM_EQU(D_RW(parent)->n, D_RO(parent)->n - 1);
 		
+	TX_ADD(parent);
 	/* move everything to the right of the separator by one array slot */
 	PM_MEMMOVE(D_RW(parent)->items + p, D_RW(parent)->items + p + 1,
 	sizeof(struct tree_map_node_item) * (D_RO(parent)->n - p));
@@ -42,9 +43,13 @@ btree_map_merge(TOID(struct btree_map) map, TOID(struct tree_map_node) rn,
 		PM_EQU(D_RW(map)->root, node);
 	}
 }
-'''.
+```
 
 ### Explanation
-In the correction, two lines are added to fix the bugs in the code.
-1. The first bug is fixed by adding the line 'TX_ADD(parent);' before modifying the 'parent' node. This line tells the transaction system that it is intended to modify the 'parent' node during the transaction. It ensures that the changes to the 'parent' node are properly recorded and will be committed if the transaction is successful or rolled back if the transaction aborts.
-2. The second bug is fixed by removing the line '// BUG //' and leaving the code as it is. This line was mistakenly added and is not necessary for the correct functioning of the program.
+In the incorrect program, there are two bugs to fix, both delimited by the '// BUG //' expressions.
+
+1. The first bug is that the transaction system is not properly informed about the modification of the 'parent' node. To fix this, we need to add the line 'TX_ADD(parent);' before moving the items and slots in the parent node.
+
+2. The second bug is that the transaction system is not properly informed about the modification of the 'map' root node. To fix this, we need to add the line 'TX_ADD(map);' before freeing the old root node and assigning the new root node.
+
+By adding the 'TX_ADD' statements, we ensure that the modifications to 'parent' and 'map' are properly recorded by the transaction system. This ensures that if the transaction aborts, the changes to these nodes are rolled back, maintaining the consistency of the persistent memory data structures.

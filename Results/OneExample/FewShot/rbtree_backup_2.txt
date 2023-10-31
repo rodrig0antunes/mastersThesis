@@ -1,4 +1,5 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ``` C
 /*
  * rbtree_map_rotate -- (internal) performs a left/right rotation around a node
@@ -11,7 +12,7 @@ rbtree_map_rotate(TOID(struct rbtree_map) map,
 	TOID(struct tree_map_node) s = D_RO(map)->sentinel;
 		
 	// BUG //
-	TX_BEGIN(pop) {
+	TX_BEGIN(map.oid) {
 		TX_ADD(node);
 		TX_ADD(child);
 		
@@ -22,13 +23,9 @@ rbtree_map_rotate(TOID(struct rbtree_map) map,
 			TX_SET(D_RW(child)->slots[c], parent, node);
 		
 		PM_EQU(NODE_P(child), NODE_P(node));
-
 		TX_SET(NODE_P(node), slots[NODE_LOCATION(node)], child);
-
 		PM_EQU(D_RW(child)->slots[c], node);
 		PM_EQU(D_RW(node)->parent, child);
-	} TX_ONABORT {
-		// handle transaction abort
-	} TX_END
+	} TX_END;
 }
 ```

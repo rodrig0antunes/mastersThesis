@@ -1,5 +1,6 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
-''' C
+
+``` C
 /*
  * btree_map_rotate_right -- (internal) takes one element from right sibling
  */
@@ -29,10 +30,13 @@ btree_map_rotate_right(TOID(struct tree_map_node) rsb,
 	PM_MEMMOVE(D_RW(rsb)->slots, D_RO(rsb)->slots + 1,
 		sizeof(TOID(struct tree_map_node)) * (D_RO(rsb)->n + 1));
 }
-'''.
+```
 
 ### Explanation
-In the correction, two lines are added to properly register the modifications made to the 'node' and 'rsb' objects within the transaction.
-The line 'TX_ADD_FIELD(node, slots[D_RO(node)->n]);' is added to register the modification of the 'slots' array in the 'node' object. This ensures that if the transaction aborts, the changes made to the 'slots' array are rolled back.
-The line 'TX_ADD_FIELD(rsb, n);' is added to register the modification of the 'n' field in the 'rsb' object. This ensures that if the transaction aborts, the change made to the 'n' field is rolled back.
-By adding these two lines, the modifications made to the 'node' and 'rsb' objects are properly recorded within the transaction, ensuring the consistency of the persistent memory data structures.
+In the incorrect program, there are two bugs to fix, both delimited by the '// BUG //' expressions.
+
+In the corrected program, the first bug fix is to add the line 'TX_ADD_FIELD(node, slots[D_RO(node)->n]);' before assigning the value of 'D_RO(rsb)->slots[0]' to 'D_RW(node)->slots[D_RO(node)->n]'. This line registers the field 'slots[D_RO(node)->n]' of the 'node' object as a part of the transaction, ensuring that any changes made to this field are properly recorded and can be rolled back if the transaction aborts.
+
+The second bug fix is to add the line 'TX_ADD_FIELD(rsb, n);' before decrementing the value of 'D_RW(rsb)->n'. This line registers the field 'n' of the 'rsb' object as a part of the transaction, ensuring that any changes made to this field are properly recorded and can be rolled back if the transaction aborts.
+
+By adding these two 'TX_ADD_FIELD' lines, the changes made to the 'node' object and the 'rsb' object are properly recorded and can be committed or rolled back as a part of the transaction, ensuring the consistency of the persistent memory data structures.

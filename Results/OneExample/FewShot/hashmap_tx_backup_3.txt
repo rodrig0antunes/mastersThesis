@@ -1,4 +1,5 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ``` C
 /*
  * hm_tx_insert -- inserts specified value into the hashmap,
@@ -24,12 +25,13 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 			return 1;
 		num++;
 	}
-	// BUG //
+		// BUG //
 
 	int ret = 0;
 	TX_BEGIN(pop) {
-		TX_ADD_FIELD(D_RW(buckets)->bucket[h], next);
+
 		TX_ADD_FIELD(hashmap, count);
+		TX_ADD_FIELD(buckets, bucket[h]);
 
 		// BUG //
 		

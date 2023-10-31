@@ -1,39 +1,40 @@
+### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ``` C
 /*
-* btree_map_create_split_node -- (internal) splits a node into two
-*/
+ * btree_map_create_split_node -- (internal) splits a node into two
+ */
 static TOID(struct tree_map_node)
 btree_map_create_split_node(TOID(struct tree_map_node) node,
-                            struct tree_map_node_item *m)
+	struct tree_map_node_item *m)
 {
 
-    // BUG //
+	// BUG //
+	TOID(struct tree_map_node) right = TX_ZNEW(struct tree_map_node);
+	
+	
+	int c = (BTREE_ORDER / 2);
+	*m = D_RO(node)->items[c - 1]; /* select median item */
+		
+	// BUG //
+	PMEMobjpool *pop = pmemobj_pool_by_ptr(node.oid.off);
+	PM_EQU(D_RW(node)->items[c - 1], EMPTY_ITEM, pop);
 
-    TOID(struct tree_map_node) right = TX_ZNEW(struct tree_map_node);
+	/* move everything right side of median to the new node */
+	for (int i = c; i < BTREE_ORDER; ++i) {
+		if (i != BTREE_ORDER - 1) {
+			PM_EQU(D_RW(right)->items[D_RW(right)->n],
+				D_RO(node)->items[i], pop);
+			PM_EQU(D_RW(right)->n, D_RO(right)->n + 1, pop);
+			PM_EQU(D_RW(node)->items[i], EMPTY_ITEM, pop);
+		}
+		PM_EQU(D_RW(right)->slots[i - c], D_RO(node)->slots[i], pop);
+		PM_EQU(D_RW(node)->slots[i], TOID_NULL(struct tree_map_node), pop);
+	}
+	PM_EQU(D_RW(node)->n, c - 1, pop);
 
-    // TX_ADD(node);
-
-    int c = (BTREE_ORDER / 2);
-    *m = D_RO(node)->items[c - 1]; /* select median item */
-
-    // BUG //
-
-    PM_EQU(D_RW(node)->items[c - 1], EMPTY_ITEM);
-
-    /* move everything right side of median to the new node */
-    for (int i = c; i < BTREE_ORDER; ++i) {
-        if (i != BTREE_ORDER - 1) {
-            PM_EQU(D_RW(right)->items[D_RW(right)->n],
-                   D_RO(node)->items[i]);
-            PM_EQU(D_RW(right)->n, D_RO(right)->n + 1);
-            PM_EQU(D_RW(node)->items[i], EMPTY_ITEM);
-        }
-        PM_EQU(D_RW(right)->slots[i - c], D_RO(node)->slots[i]);
-        PM_EQU(D_RW(node)->slots[i], TOID_NULL(struct tree_map_node));
-    }
-    PM_EQU(D_RW(node)->n, c - 1);
-
-    return right;
+	return right;
 }
 ```
-The corrected code is the same as the original code provided. No changes were made.
+
+In the corrected program, I added the `pop` variable to store the PMEMobjpool pointer. This pointer is used as an argument in the `PM_EQU` macro to specify the pool where the persistent memory objects are located. This ensures that the correct pool is used for the operations on the persistent memory objects.

@@ -5,7 +5,7 @@ You are a helpful programming assistant and an expert in the development of Pers
 The user has written a program in C programming language while using the PMDK library libpmemobj. However, the program has some bugs and is not working as expected. 
 The user has analysed the program with a bug detection tool that has located the bug or bugs. You will use this information to generate a corrected version of the program.
 The bug or bugs to repair will be located in an area of the code delimited by an expression. The beggining and end of the area of the code where a bug is and where the fix is 
-supposed to go will be delimited by the exprexion '// BUG //'.
+supposed to go will be delimited by the expression '// BUG //'.
 When presenting the correction, present the whole code and not just the corrected segment of the code.
 Put the whole corrected program within code delimiters, as follows:
                 ''' C
@@ -17,6 +17,7 @@ Put the whole corrected program within code delimiters, as follows:
 ### EXAMPLES
 
 ## Example 1
+
 ''' C
 
 void write_hello_string (char *buf, char *path)
@@ -34,10 +35,14 @@ void write_hello_string (char *buf, char *path)
 	PMEMoid root = pmemobj_root(pop, sizeof (struct my_root));
 	struct my_root *rootp = pmemobj_direct(root);
     
+	// BUG //
+
     pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));
 	
     rootp->len = strlen(buf);
 
+	// BUG //
+	
 	printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
 	pmemobj_close(pop);	
 
@@ -49,6 +54,7 @@ void write_hello_string (char *buf, char *path)
 ===== assistant =====
 
 ## Correction 1
+
 ''' C
 
 void write_hello_string (char *buf, char *path)
@@ -66,10 +72,14 @@ void write_hello_string (char *buf, char *path)
 	PMEMoid root = pmemobj_root(pop, sizeof (struct my_root));
     struct my_root *rootp = pmemobj_direct(root);
     
+	// BUG //
+
     rootp->len = strlen(buf);
     
     pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));
 	
+	// BUG //
+
     printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
 	pmemobj_close(pop);	
 
@@ -81,6 +91,7 @@ void write_hello_string (char *buf, char *path)
 ===== user =====
 
 ## Example 2
+
 ''' C
  
 int main(int argc, char *argv[]) {
@@ -94,11 +105,16 @@ int main(int argc, char *argv[]) {
     }
     PMEMoid root_oid = pmemobj_root(pop, sizeof(struct root));
     struct root *root_ptr = pmemobj_direct(root_oid);
+    
+    // BUG //
 
     root_ptr->value1 = 42;
     root_ptr->value2 = 84;
     pmemobj_persist(pop, &root_ptr->value2, sizeof(int)); 
     pmemobj_persist(pop, &root_ptr->value1, sizeof(int));
+    
+    // BUG //
+
     pmemobj_close(pop);
     return 0;
 }
@@ -108,6 +124,7 @@ int main(int argc, char *argv[]) {
 ===== assistant =====
 
 ## Correction 2
+
 ''' C
  
 int main(int argc, char *argv[]) {
@@ -120,10 +137,16 @@ int main(int argc, char *argv[]) {
     }
     PMEMoid root_oid = pmemobj_root(pop, sizeof(struct root));
     struct root *root_ptr = pmemobj_direct(root_oid);
+
+    // BUG //
+
     root_ptr->value1 = 42;  // Update value1 in persistent memory
     pmemobj_persist(pop, &root_ptr->value1, sizeof(int));
     root_ptr->value2 = 84;  // Update value2 in persistent memory
     pmemobj_persist(pop, &root_ptr->value2, sizeof(int)); 
+    
+    // BUG //
+
     pmemobj_close(pop);
     return 0;
 }
@@ -133,6 +156,7 @@ int main(int argc, char *argv[]) {
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * hm_atomic_remove -- removes specified value from the hashmap,

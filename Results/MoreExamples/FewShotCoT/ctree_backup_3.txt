@@ -1,5 +1,6 @@
-### CORRECTED PERSISTENT MEMORY PROGRAM
-''' C
+### Corrected Persistent Memory Program
+
+``` C
 /*
  * ctree_map_insert -- inserts a new key-value pair into the map
  */
@@ -22,14 +23,18 @@ ctree_map_insert(PMEMobjpool *pop, TOID(struct ctree_map) map,
 	TX_BEGIN(pop) {
 		
 		// BUG //
+
 		if (p->key == 0 || p->key == key) {
 			PM_EQU(*p, e);
 			pmemobj_tx_add_range_direct(p, sizeof(*p));
 		} else {
 			ctree_map_insert_leaf(&D_RW(map)->root, e,
 					find_crit_bit(p->key, key));
+			pmemobj_tx_add_range_direct(&D_RW(map)->root, sizeof(D_RW(map)->root));
 		}
+		
 		// BUG //
+
 	} TX_ONABORT {
 		ret = 1;
 	} TX_END
@@ -38,10 +43,15 @@ ctree_map_insert(PMEMobjpool *pop, TOID(struct ctree_map) map,
 	// printf("ret = %d\n", ret);
 	return ret;
 }
-'''.
+```
 
-## Explanation
-In the correction, the code block between the two '// BUG //' comments is moved inside the transaction block. 
-The transaction block is started with 'TX_BEGIN(pop)' and ended with 'TX_END'. 
-By moving the code block inside the transaction, the operations performed on the persistent memory are now part of the transaction. 
-This ensures that the changes made to the persistent memory are either committed or rolled back as a whole, maintaining the consistency of the data.
+### Explanation
+In the example, there are two bugs to repair, located in the areas of the code delimited by the two `// BUG //` expressions. 
+
+In the correction of the example, the bug fixes are put in the respective areas of the code delimited by the `// BUG //` expressions.
+
+For the first bug fix, after the assignment `PM_EQU(*p, e);`, it is necessary to include `pmemobj_tx_add_range_direct(p, sizeof(*p));` to register the modification of the `p` pointer in the transaction. This ensures that if the transaction aborts, the changes to `p` are rolled back as well.
+
+For the second bug fix, after the call to `ctree_map_insert_leaf()`, it is necessary to include `pmemobj_tx_add_range_direct(&D_RW(map)->root, sizeof(D_RW(map)->root));` to register the modification of the `map` pointer in the transaction. This ensures that if the transaction aborts, the changes to `map` are rolled back as well.
+
+By adding these `pmemobj_tx_add_range_direct()` calls, the transaction system ensures that the modifications to `p` and `map` are properly recorded. If the transaction is successful, these changes will be committed, and if the transaction aborts, they will be rolled back, maintaining the consistency of the persistent memory data structures.

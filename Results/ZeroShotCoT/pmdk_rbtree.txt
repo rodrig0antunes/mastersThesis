@@ -1,110 +1,153 @@
-To resolve the bug, we need to analyze each bug individually and make the necessary corrections. Let's go through each bug one by one:
+To resolve the bug, we need to analyze the code and understand what it is supposed to do. 
 
-Bug #1:
-The bug is located between the two "// BUG#1 //" comments. The issue is that the code is trying to assign the value of `NODE_P(child)` to `NODE_P(node)`, but `NODE_P(node)` is not a valid assignment target. To fix this bug, we need to assign the value of `NODE_P(child)` to `NODE_P(node)` using the `TX_SET` function.
+In the `rbtree_map_rotate` function, the bug is located between the two `// BUG#1 //` comments. Let's analyze the code in that section:
 
-Bug #2:
-The bug is located between the two "// BUG#2 //" comments. The issue is that the code is trying to assign the value of `x` to `r->slots[RB_LEFT]`, but `r->slots[RB_LEFT]` is not a valid assignment target. To fix this bug, we need to assign the value of `x` to `r->slots[RB_LEFT]` using the `TX_SET` function.
-
-Bug #3:
-The bug is located between the two "// BUG#3 //" comments. The issue is that the code is trying to assign the value of `y` to `NODE_P(n)->slots[NODE_LOCATION(n)]`, but `NODE_P(n)->slots[NODE_LOCATION(n)]` is not a valid assignment target. To fix this bug, we need to assign the value of `y` to `NODE_P(n)->slots[NODE_LOCATION(n)]` using the `TX_SET` function.
-
-Now, let's correct the program by applying the fixes for each bug:
-
-``` C
-/*
-* rbtree_map_rotate -- (internal) performs a left/right rotation around a node
-*/
-static void
-rbtree_map_rotate(TOID(struct rbtree_map) map,
-TOID(struct tree_map_node) node, enum rb_children c)
-{
-TOID(struct tree_map_node) child = D_RO(node)->slots[!c];
-TOID(struct tree_map_node) s = D_RO(map)->sentinel;
-
-TX_ADD(node);
-TX_ADD(child);
-
-PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
-
-if (!TOID_EQUALS(D_RO(child)->slots[c], s))
-TX_SET(D_RW(child)->slots[c], parent, node);
-
-// BUG#1 //
-TX_SET(NODE_P(child), NODE_P(node));
+```C
+PM_EQU(NODE_P(child), NODE_P(node));
 
 TX_ADD(NODE_P(node));
 PM_EQU(NODE_PARENT_AT(node, NODE_LOCATION(node)), child);
-// TX_SET(NODE_P(node), slots[NODE_LOCATION(node)], child);
+```
 
-PM_EQU(D_RW(child)->slots[c], node);
-PM_EQU(D_RW(node)->parent, child);
+It seems that the intention of this code is to update the parent pointer of the `node` to point to `child`. However, the code is incorrect because it is using the `NODE_P` macro instead of the `D_RW` macro to access the persistent memory object.
 
-// BUG#1 //
-}
+To fix this bug, we need to replace `NODE_P(child)` and `NODE_P(node)` with `D_RW(child)` and `D_RW(node)` respectively. Additionally, we need to add the `TX_ADD` macro before updating the parent pointer.
 
-/*
-* rbtree_map_remove -- removes key-value pair from the map
-*/
-PMEMoid
-rbtree_map_remove(PMEMobjpool *pop, TOID(struct rbtree_map) map, uint64_t key)
-{
-PMEMoid ret = OID_NULL;
+Here's the corrected code:
 
-TOID(struct tree_map_node) n = rbtree_map_find_node(map, key);
-if (TOID_IS_NULL(n))
-return ret;
+```C
+PM_EQU(D_RW(child)->parent, D_RW(node));
+TX_ADD(D_RW(node));
+PM_EQU(NODE_PARENT_AT(D_RW(node), NODE_LOCATION(D_RW(node))), child);
+```
 
-ret = D_RO(n)->value;
+Now, let's move on to the next bug in the `rbtree_map_remove` function. The bug is located between the two `// BUG#2 //` comments. Let's analyze the code in that section:
 
-TOID(struct tree_map_node) s = D_RO(map)->sentinel;
-TOID(struct tree_map_node) r = D_RO(map)->root;
-
-TOID(struct tree_map_node) y = (NODE_IS_NULL(D_RO(n)->slots[RB_LEFT]) ||
-NODE_IS_NULL(D_RO(n)->slots[RB_RIGHT]))
-? n : rbtree_map_successor(map, n);
-
-TOID(struct tree_map_node) x = NODE_IS_NULL(D_RO(y)->slots[RB_LEFT]) ?
-D_RO(y)->slots[RB_RIGHT] : D_RO(y)->slots[RB_LEFT];
-
-TX_BEGIN(pop) {
-TX_SET(x, parent, NODE_P(y));
-
-// BUG#2 //
+```C
 if (TOID_EQUALS(NODE_P(x), r)) {
-TX_SET(r, slots[RB_LEFT], x);
+    TX_SET(r, slots[RB_LEFT], x);
 } else {
-TX_ADD(y);
-PM_EQU(NODE_PARENT_AT(y, NODE_LOCATION(y)), x);
-//TX_SET(NODE_P(y), slots[NODE_LOCATION(y)], x);
-
-// BUG#2 //
-}
-
-if (D_RO(y)->color == COLOR_BLACK)
-rbtree_map_repair(map, x);
-
-if (!TOID_EQUALS(y, n)) {
-TX_ADD(y);
-PM_EQU(D_RW(y)->slots[RB_LEFT], D_RO(n)->slots[RB_LEFT]);
-PM_EQU(D_RW(y)->slots[RB_RIGHT], D_RO(n)->slots[RB_RIGHT]);
-PM_EQU(D_RW(y)->parent, D_RO(n)->parent);
-PM_EQU(D_RW(y)->color, D_RO(n)->color);
-TX_SET(D_RW(n)->slots[RB_LEFT], parent, y);
-TX_SET(D_RW(n)->slots[RB_RIGHT], parent, y);
-
-// BUG#3 //
-TX_ADD(NODE_P(n));
-PM_EQU(NODE_PARENT_AT(n, NODE_LOCATION(n)), y);
-// TX_SET(NODE_P(n), slots[NODE_LOCATION(n)], y);
-
-// BUG#3 //
-}
-TX_FREE(n);
-} TX_END
-
-return ret;
+    TX_ADD(y);
+    PM_EQU(NODE_PARENT_AT(y, NODE_LOCATION(y)), x);
 }
 ```
 
-This corrected version of the program should resolve the bugs and make the program work
+It seems that the intention of this code is to update the parent pointer of `y` to point to `x`. However, the code is incorrect because it is using the `NODE_P` macro instead of the `D_RW` macro to access the persistent memory object.
+
+To fix this bug, we need to replace `NODE_P(x)` and `NODE_PARENT_AT(y, NODE_LOCATION(y))` with `D_RW(x)` and `D_RW(y)` respectively. Additionally, we need to add the `TX_ADD` macro before updating the parent pointer.
+
+Here's the corrected code:
+
+```C
+if (TOID_EQUALS(D_RW(x), r)) {
+    TX_SET(D_RW(r), slots[RB_LEFT], x);
+} else {
+    TX_ADD(D_RW(y));
+    PM_EQU(NODE_PARENT_AT(D_RW(y), NODE_LOCATION(D_RW(y))), x);
+}
+```
+
+Finally, let's move on to the last bug in the `rbtree_map_remove` function. The bug is located between the two `// BUG#3 //` comments. Let's analyze the code in that section:
+
+```C
+TX_ADD(NODE_P(n));
+PM_EQU(NODE_PARENT_AT(n, NODE_LOCATION(n)), y);
+```
+
+It seems that the intention of this code is to update the parent pointer of `n` to point to `y`. However, the code is incorrect because it is using the `NODE_P` macro instead of the `D_RW` macro to access the persistent memory object.
+
+To fix this bug, we need to replace `NODE_P(n)` with `D_RW(n)`. Additionally, we need to add the `TX_ADD` macro before updating the parent pointer.
+
+Here's the corrected code:
+
+```C
+TX_ADD(D_RW(n));
+PM_EQU(NODE_PARENT_AT(D_RW(n), NODE_LOCATION(D_RW(n))), y);
+```
+
+Now that we have fixed all the bugs, let's present the whole corrected program:
+
+```C
+/*
+ * rbtree_map_rotate -- (internal) performs a left/right rotation around a node
+ */
+static void
+rbtree_map_rotate(TOID(struct rbtree_map) map,
+	TOID(struct tree_map_node) node, enum rb_children c)
+{
+	TOID(struct tree_map_node) child = D_RO(node)->slots[!c];
+	TOID(struct tree_map_node) s = D_RO(map)->sentinel;
+
+	TX_ADD(node);
+	TX_ADD(child);
+
+	PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
+
+	if (!TOID_EQUALS(D_RO(child)->slots[c], s))
+		TX_SET(D_RW(child)->slots[c], parent, node);
+
+	PM_EQU(D_RW(child)->parent, D_RW(node));
+	TX_ADD(D_RW(node));
+	PM_EQU(NODE_PARENT_AT(D_RW(node), NODE_LOCATION(D_RW(node))), child);
+
+	PM_EQU(D_RW(child)->slots[c], node);
+	PM_EQU(D_RW(node)->parent, child);
+}
+
+/*
+ * rbtree_map_remove -- removes key-value pair from the map
+ */
+PMEMoid
+rbtree_map_remove(PMEMobjpool *pop, TOID(struct rbtree_map) map, uint64_t key)
+{
+	PMEMoid ret = OID_NULL;
+
+	TOID(struct tree_map_node) n = rbtree_map_find_node(map, key);
+	if (TOID_IS_NULL(n))
+		return ret;
+
+	ret = D_RO(n)->value;
+
+	TOID(struct tree_map_node) s = D_RO(map)->sentinel;
+	TOID(struct tree_map_node) r = D_RO(map)->root;
+
+	TOID(struct tree_map_node) y = (NODE_IS_NULL(D_RO(n)->slots[RB_LEFT]) ||
+					NODE_IS_NULL(D_RO(n)->slots[RB_RIGHT]))
+					? n : rbtree_map_successor(map, n);
+
+	TOID(struct tree_map_node) x = NODE_IS_NULL(D_RO(y)->slots[RB_LEFT]) ?
+			D_RO(y)->slots[RB_RIGHT] : D_RO(y)->slots[RB_LEFT];
+
+	TX_BEGIN(pop) {
+		TX_SET(x, parent, NODE_P(y));
+
+		if (TOID_EQUALS(D_RW(x), r)) {
+			TX_SET(D_RW(r), slots[RB_LEFT], x);
+		} else {
+			TX_ADD(D_RW(y));
+			PM_EQU(NODE_PARENT_AT(D_RW(y), NODE_LOCATION(D_RW(y))), x);
+		}
+
+		if (D_RO(y)->color == COLOR_BLACK)
+			rbtree_map_repair(map, x);
+
+		if (!TOID_EQUALS(y, n)) {
+			TX_ADD(D_RW(y));
+			PM_EQU(D_RW(y)->slots[RB_LEFT], D_RO(n)->slots[RB_LEFT]);
+			PM_EQU(D_RW(y)->slots[RB_RIGHT], D_RO(n)->slots[RB_RIGHT]);
+			PM_EQU(D_RW(y)->parent, D_RO(n)->parent);
+			PM_EQU(D_RW(y)->color, D_RO(n)->color);
+			TX_SET(D_RW(n)->slots[RB_LEFT], parent, y);
+			TX_SET(D_RW(n)->slots[RB_RIGHT], parent, y);
+
+			TX_ADD(D_RW(n));
+			PM_EQU(NODE_PARENT_AT(D_RW(n), NODE_LOCATION(D_RW(n))), y);
+		}
+		TX_FREE(n);
+	} TX_END
+
+	return ret;
+}
+```
+
+Now the program should be free of bugs and work as expected.

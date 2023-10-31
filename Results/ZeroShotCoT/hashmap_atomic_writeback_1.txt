@@ -1,62 +1,9 @@
-To resolve the bug, we need to make the following changes:
+To resolve the bug, we need to fix the code within the delimited area. 
 
-1. Remove the line `POBJ_FREE(&D_RO(hashmap)->buckets);` as it is not necessary and may cause issues.
+Looking at the code, it seems that the bug is related to freeing the memory allocated for the `buckets` object. The code `POBJ_FREE(&D_RO(hashmap)->buckets);` is used to free the memory, but it is incorrect because `buckets` is a persistent object and should not be freed using `POBJ_FREE`.
 
-2. Uncomment the line `pmemobj_persist(pop, &D_RW(hashmap)->buckets, sizeof(D_RW(hashmap)->buckets));` to persist the changes made to the `buckets` field.
+To fix this bug, we need to remove the line `POBJ_FREE(&D_RO(hashmap)->buckets);` and replace it with the correct code to free the memory.
 
-3. Uncomment the line `pmemobj_persist(pop, &D_RW(hashmap)->buckets_tmp, sizeof(D_RW(hashmap)->buckets_tmp));` to persist the changes made to the `buckets_tmp` field.
+Additionally, the line `PM_EQU(D_RW(hashmap)->buckets, D_RO(hashmap)->buckets_tmp);` is also incorrect. It seems that the intention is to copy the contents of `buckets_tmp` to `buckets`. To fix this, we need to replace the line with the correct code to copy the contents.
 
-Here is the corrected program:
-
-``` C
-/*
-* hm_atomic_rebuild_finish -- finishes rebuild, assumes buckets_tmp is not null
-*/
-static void
-hm_atomic_rebuild_finish(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap)
-{
-    TOID(struct buckets) cur = D_RO(hashmap)->buckets;
-    TOID(struct buckets) tmp = D_RO(hashmap)->buckets_tmp;
-
-    for (size_t i = 0; i < D_RO(cur)->nbuckets; ++i) {
-        while (!POBJ_LIST_EMPTY(&D_RO(cur)->bucket[i])) {
-            TOID(struct entry) en =
-                POBJ_LIST_FIRST(&D_RO(cur)->bucket[i]);
-            uint64_t h = hash(&hashmap, &tmp, D_RO(en)->key);
-
-            if (POBJ_LIST_MOVE_ELEMENT_HEAD(pop,
-                &D_RW(cur)->bucket[i],
-                &D_RW(tmp)->bucket[h],
-                en, list, list)) {
-                fprintf(stderr, "move failed: %s\n",
-                    pmemobj_errormsg());
-                abort();
-            }
-        }
-    }
-
-    // BUG //
-
-    // POBJ_FREE(&D_RO(hashmap)->buckets);
-
-    pmemobj_persist(pop, &D_RW(hashmap)->buckets,
-        sizeof(D_RW(hashmap)->buckets));
-
-    // BUG //
-
-    /* We have to set offset manually instead of substituting OID_NULL,
-    * because we won't be able to recover easily if crash happens after
-    * pool_uuid_lo, but before offset is set. Another reason why everyone
-    * should use transaction API.
-    * See recovery process in hm_init and TOID_IS_NULL macro definition.
-    */
-    PM_EQU(D_RW(hashmap)->buckets_tmp.oid.off, 0);
-    pmemobj_persist(pop, &D_RW(hashmap)->buckets_tmp,
-        sizeof(D_RW(hashmap)->buckets_tmp));
-
-    PMTest_isPersistent(&D_RW(hashmap)->buckets, sizeof(D_RW(hashmap)->buckets));
-    PMTest_isPersistent(&D_RW(hashmap)->buckets_tmp, sizeof(D_RW(hashmap)->buckets_tmp));
-}
-```
-
-Please note that the code within the `// BUG //` markers has been commented out or removed, and the necessary lines have been uncommented.
+Let's make these corrections in the code.

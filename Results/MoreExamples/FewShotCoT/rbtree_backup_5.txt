@@ -1,5 +1,6 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
-''' C
+
+``` C
 /*
  * rbtree_map_repair_branch -- (internal) restores red-black tree in one branch
  */
@@ -9,55 +10,60 @@ rbtree_map_repair_branch(TOID(struct rbtree_map) map,
 {
 
 		// BUG //
-		TX_BEGIN(map.oid.pool) {
-			TX_ADD_DIRECT(n);
-			TX_ADD_DIRECT(map);
-			TX_ADD_DIRECT(NODE_PARENT_AT(n, !c));
-			TX_ADD_DIRECT(NODE_PARENT_AT(n, c));
-			TX_ADD_DIRECT(NODE_P(n));
-			TX_ADD_DIRECT(D_RO(NODE_P(n))->slots[!c]);
-			TX_ADD_DIRECT(D_RO(NODE_P(n))->slots[c]);
-			TX_ADD_DIRECT(D_RO(D_RO(NODE_PARENT_AT(n, !c)))->slots[RB_RIGHT]);
-			TX_ADD_DIRECT(D_RO(D_RO(NODE_PARENT_AT(n, !c)))->slots[RB_LEFT]);
-			
-			TOID(struct tree_map_node) sb = NODE_PARENT_AT(n, !c); /* sibling */
-			if (D_RO(sb)->color == COLOR_RED) {
-				PM_EQU(D_RW(sb)->color, COLOR_BLACK);
-				TX_SET(NODE_P(n), color, COLOR_RED);
-				rbtree_map_rotate(map, NODE_P(n), c);
-				sb = NODE_PARENT_AT(n, !c);
-				
-				// BUG //
-				TX_ADD_DIRECT(sb);
-			}
 
-			if (D_RO(D_RO(sb)->slots[RB_RIGHT])->color == COLOR_BLACK &&
-				D_RO(D_RO(sb)->slots[RB_LEFT])->color == COLOR_BLACK) {
-				TX_SET(sb, color, COLOR_RED);
-				return D_RO(n)->parent;
-			} else {
-				if (D_RO(D_RO(sb)->slots[!c])->color == COLOR_BLACK) {
-					TX_SET(D_RW(sb)->slots[c], color, COLOR_BLACK);
-					TX_SET(sb, color, COLOR_RED);
-					rbtree_map_rotate(map, sb, !c);
-					sb = NODE_PARENT_AT(n, !c);
-				}
-				TX_SET(sb, color, D_RO(NODE_P(n))->color);
-				TX_SET(NODE_P(n), color, COLOR_BLACK);
-				TX_SET(D_RW(sb)->slots[!c], color, COLOR_BLACK);
-				rbtree_map_rotate(map, NODE_P(n), c);
+	TX_ADD_DIRECT(D_RW(n));
+	TX_ADD_DIRECT(D_RW(NODE_P(n)));
+	TX_ADD_DIRECT(D_RW(NODE_PARENT_AT(n, !c)));
+	TX_ADD_DIRECT(D_RW(D_RO(NODE_PARENT_AT(n, !c)))->color);
+	TX_ADD_DIRECT(D_RW(D_RO(D_RO(NODE_PARENT_AT(n, !c)))->slots[RB_RIGHT]));
+	TX_ADD_DIRECT(D_RW(D_RO(D_RO(NODE_PARENT_AT(n, !c)))->slots[RB_LEFT]));
+	TX_ADD_DIRECT(D_RW(D_RO(D_RO(NODE_PARENT_AT(n, !c)))->slots[!c]));
+	
+	TOID(struct tree_map_node) sb = NODE_PARENT_AT(n, !c); /* sibling */
+	if (D_RO(sb)->color == COLOR_RED) {
+		PM_EQU(D_RW(sb)->color, COLOR_BLACK);
+		TX_SET(NODE_P(n), color, COLOR_RED);
+		rbtree_map_rotate(map, NODE_P(n), c);
+		sb = NODE_PARENT_AT(n, !c);
+		
+		// BUG //
+		
+	}
 
-				return RB_FIRST(map);
-			}
-		} TX_ONABORT {
-			// handle transaction abort
-		} TX_END
+	if (D_RO(D_RO(sb)->slots[RB_RIGHT])->color == COLOR_BLACK &&
+		D_RO(D_RO(sb)->slots[RB_LEFT])->color == COLOR_BLACK) {
+		TX_SET(sb, color, COLOR_RED);
+		return D_RO(n)->parent;
+	} else {
+		if (D_RO(D_RO(sb)->slots[!c])->color == COLOR_BLACK) {
+			TX_SET(D_RW(sb)->slots[c], color, COLOR_BLACK);
+			TX_SET(sb, color, COLOR_RED);
+			rbtree_map_rotate(map, sb, !c);
+			sb = NODE_PARENT_AT(n, !c);
+		}
+		TX_SET(sb, color, D_RO(NODE_P(n))->color);
+		TX_SET(NODE_P(n), color, COLOR_BLACK);
+		TX_SET(D_RW(sb)->slots[!c], color, COLOR_BLACK);
+		rbtree_map_rotate(map, NODE_P(n), c);
+
+		return RB_FIRST(map);
+	}
 
 	return n;
 }
-'''.
+```
 
 ### Explanation
-In the correction, the entire code block inside the function 'rbtree_map_repair_branch' is wrapped inside a transaction block using 'TX_BEGIN' and 'TX_END'. This ensures that all the modifications made within the function are atomic and consistent.
-Additionally, 'TX_ADD_DIRECT' is used to register the modified variables and data structures within the transaction. This ensures that the changes made to these variables are properly recorded and persisted in the persistent memory pool.
-By adding the transaction block and registering the modified variables, the program ensures that the modifications made to the red-black tree are durable and consistent, even in the event of a transaction abort.
+In the example, the bug to repair is located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fix is put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, the following lines are added before the first '// BUG //' expression:
+``` C
+TX_ADD_DIRECT(D_RW(n));
+TX_ADD_DIRECT(D_RW(NODE_P(n)));
+TX_ADD_DIRECT(D_RW(NODE_PARENT_AT(n, !c)));
+TX_ADD_DIRECT(D_RW(D_RO(NODE_PARENT_AT(n, !c)))->color);
+TX_ADD_DIRECT(D_RW(D_RO(D_RO(NODE_PARENT_AT(n, !c)))->slots[RB_RIGHT]));
+TX_ADD_DIRECT(D_RW(D_RO(D_RO(NODE_PARENT_AT(n, !c)))->slots[RB_LEFT]));
+TX_ADD_DIRECT(D_RW(D_RO(D_RO(NODE_PARENT_AT(n, !c)))->slots[!c]));
+```
+These lines add the necessary direct pointers to the transaction system to ensure that the modifications made to the variables are properly recorded and persisted in the persistent memory pool. By adding these lines, the transaction system will track the changes made to these variables and ensure their durability in case of a transaction abort.

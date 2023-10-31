@@ -1,4 +1,5 @@
-### CORRECTED PERSISTENT MEMORY PROGRAM
+### Correction
+
 ``` C
 /*
  * hm_atomic_insert -- inserts specified value into the hashmap,
@@ -23,12 +24,14 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 		num++;
 	}
 		
-	// BUG //
-	PM_EQU(D_RW(hashmap)->count_dirty, 1);
+		// BUG //
+		
+	D_RW(hashmap)->count_dirty = 1;
 	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
 			sizeof(D_RW(hashmap)->count_dirty));
-	// BUG //
 		
+		// BUG //
+
 	struct entry_args args = {
 		.key = key,
 		.value = value,
@@ -42,14 +45,14 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 		return -1;
 	}
 
-	PM_EQU(D_RW(hashmap)->count, (D_RW(hashmap)->count + 1));
+	D_RW(hashmap)->count = (D_RW(hashmap)->count + 1);
 	pmemobj_persist(pop, &D_RW(hashmap)->count,
 			sizeof(D_RW(hashmap)->count));
 
 	PMTest_isPersistedBefore(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty), &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));
 
 
-	PM_EQU(D_RW(hashmap)->count_dirty, 0);
+	D_RW(hashmap)->count_dirty = 0;
 	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
 			sizeof(D_RW(hashmap)->count_dirty));
 
@@ -70,4 +73,7 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 ```
 
 ### Explanation
-In the corrected program, the redundant `pmemobj_persist(pop, &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));` call has been removed. This call is redundant because the same line of code is already present just before it. By removing the redundant call, the unnecessary overhead is eliminated, while still maintaining the correct behavior of persisting the `count_dirty` field, ensuring that this specific data is correctly persisted in the persistent memory pool.
+In the example, there are two bugs to repair, located in the areas of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fixes are put in the areas of the code delimited by the two '// BUG //' expressions.
+In the correction, the incorrect usage of the macro `PM_EQU` is replaced with the correct assignment operator `=`. This ensures that the `count_dirty` field is correctly set to 1 and 0, respectively.
+By using the correct assignment operator, the correct value is assigned to the `count_dirty` field, ensuring that it is correctly persisted in the persistent memory pool.

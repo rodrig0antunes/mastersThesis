@@ -1,50 +1,31 @@
-To resolve the bug, we need to identify the specific issue within the code. The bug is indicated by the "// BUG //" comment, but we need more information to understand what needs to be fixed.
+To resolve the bug, we need to fix the code inside the first `PM_MEMMOVE` call. The bug is likely related to the incorrect calculation of the number of elements to move.
 
-Let's analyze the code step by step:
+The correct calculation should be `BTREE_ORDER - 1 - p` instead of `BTREE_ORDER - 2 - p`. This is because the `BTREE_ORDER` represents the maximum number of elements in the node, and we need to move all the elements from position `p` onwards.
 
-1. The function `btree_map_insert_node` is defined as a static function that takes several parameters, including a persistent memory object `node`, an integer `p`, a `tree_map_node_item` struct `item`, and two persistent memory object pointers `left` and `right`.
-
-2. The first line inside the function is `TX_ADD(node)`, which adds the `node` object to the transaction. This ensures that any modifications made to the `node` object are persistent.
-
-3. The next line checks if the key at position `p` in the `node` object is not equal to 0. If it is not equal to 0, it means that there is existing data at that position, and we need to make space for the new data.
-
-4. The next two lines use `PM_MEMMOVE` to move the existing data in the `items` array and the `slots` array to make space for the new data. The `PM_MEMMOVE` function is used to move a block of memory from one location to another.
-
-5. The next line adds the `node` object to the transaction again. This is redundant and can be removed.
-
-6. The next two lines set the `left` and `right` pointers in the `slots` array at positions `p` and `p + 1`, respectively.
-
-7. The last line calls the `btree_map_insert_item_at` function to insert the `item` at position `p` in the `node` object.
-
-Based on this analysis, it seems that the bug is related to the lines indicated by "// BUG //". Let's examine those lines more closely.
-
-The first line indicated by "// BUG //" is `PM_MEMMOVE(&D_RW(node)->items[p + 1], &D_RW(node)->items[p], sizeof(struct tree_map_node_item) * ((BTREE_ORDER - 2 - p)));`. This line is responsible for moving the existing data in the `items` array to make space for the new data. However, the calculation of the number of elements to move seems incorrect. It should be `((BTREE_ORDER - 1 - p))` instead of `((BTREE_ORDER - 2 - p))`.
-
-The second line indicated by "// BUG //" is `PM_MEMMOVE(&D_RW(node)->slots[p + 1], &D_RW(node)->slots[p], sizeof(TOID(struct tree_map_node)) * ((BTREE_ORDER - 1 - p)));`. This line is responsible for moving the existing data in the `slots` array to make space for the new data. However, the calculation of the number of elements to move seems incorrect. It should also be `((BTREE_ORDER - 1 - p))`.
-
-To fix the bug, we need to correct the calculations in both `PM_MEMMOVE` lines. The corrected code is as follows:
+Here's the corrected code:
 
 ``` C
-/* 
-* btree_map_insert_node -- (internal) inserts and makes space for new node 
-*/
+/*
+ * btree_map_insert_node -- (internal) inserts and makes space for new node
+ */
 static void
 btree_map_insert_node(TOID(struct tree_map_node) node, int p,
-                      struct tree_map_node_item item,
-                      TOID(struct tree_map_node) left, TOID(struct tree_map_node) right)
+	struct tree_map_node_item item,
+	TOID(struct tree_map_node) left, TOID(struct tree_map_node) right)
 {
-    TX_ADD(node);
-    if (D_RO(node)->items[p].key != 0) { /* move all existing data */
-        PM_MEMMOVE(&D_RW(node)->items[p + 1], &D_RW(node)->items[p],
-                   sizeof(struct tree_map_node_item) * (BTREE_ORDER - 1 - p));
-
-        PM_MEMMOVE(&D_RW(node)->slots[p + 1], &D_RW(node)->slots[p],
-                   sizeof(TOID(struct tree_map_node)) * (BTREE_ORDER - 1 - p));
-    }
-    PM_EQU(D_RW(node)->slots[p], left);
-    PM_EQU(D_RW(node)->slots[p + 1], right);
-    btree_map_insert_item_at(node, p, item);
+	TX_ADD(node);
+	if (D_RO(node)->items[p].key != 0) { /* move all existing data */
+		PM_MEMMOVE(&D_RW(node)->items[p + 1], &D_RW(node)->items[p],
+		sizeof(struct tree_map_node_item) * (BTREE_ORDER - 1 - p));
+	
+		PM_MEMMOVE(&D_RW(node)->slots[p + 1], &D_RW(node)->slots[p],
+		sizeof(TOID(struct tree_map_node)) * (BTREE_ORDER - 1 - p));
+	}
+	TX_ADD(node);
+	PM_EQU(D_RW(node)->slots[p], left);
+	PM_EQU(D_RW(node)->slots[p + 1], right);
+	btree_map_insert_item_at(node, p, item);
 }
 ```
 
-Please note that the code provided above assumes that the `BTREE_ORDER` constant is defined correctly elsewhere in the program.
+Now the code should correctly move the existing data in the node.

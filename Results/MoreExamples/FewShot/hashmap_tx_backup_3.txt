@@ -1,4 +1,5 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * hm_tx_insert -- inserts specified value into the hashmap,
@@ -28,23 +29,17 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 
 	int ret = 0;
 	TX_BEGIN(pop) {
-		TX_ADD_FIELD(D_RW(buckets)->bucket[h], next);
+
 		TX_ADD_FIELD(hashmap, count);
 
 		// BUG //
 		
 		TOID(struct entry) e = TX_NEW(struct entry);
-		PMTest_assign(&(D_RW(e)->key), sizeof(struct entry));
-		(D_RW(e)->key) = (key);
-		(D_RW(e)->value) = (value);
-		(D_RW(e)->next) = (D_RO(buckets)->bucket[h]);
-		/*
-		PM_EQU((D_RW(e)->key), (key));
-		PM_EQU((D_RW(e)->value), (value));
-		PM_EQU((D_RW(e)->next), (D_RO(buckets)->bucket[h]));
-		*/
-		PM_EQU((D_RW(buckets)->bucket[h]), (e));
-		PM_EQU((D_RW(hashmap)->count), (D_RW(hashmap)->count+1));
+		(D_RW(e)->key) = key;
+		(D_RW(e)->value) = value;
+		(D_RW(e)->next) = D_RO(buckets)->bucket[h];
+		D_RW(buckets)->bucket[h] = e;
+		D_RW(hashmap)->count = D_RW(hashmap)->count + 1;
 		num++;
 	} TX_ONABORT {
 		fprintf(stderr, "transaction aborted: %s\n",
@@ -62,4 +57,4 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 
 	return 0;
 }
-'''.
+'''

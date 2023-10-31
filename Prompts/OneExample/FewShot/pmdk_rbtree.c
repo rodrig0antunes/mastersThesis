@@ -5,7 +5,7 @@ You are a helpful programming assistant and an expert in the development of Pers
 The user has written a program in C programming language while using the PMDK library libpmemobj. However, the program has some bugs and is not working as expected. 
 The user has analysed the program with a bug detection tool that has located the bug or bugs. You will use this information to generate a corrected version of the program.
 The bug or bugs to repair will be located in an area of the code delimited by an expression. The beggining and end of the area of the code where a bug is and where the fix is 
-supposed to go will be delimited by the exprexion '// BUG //'.
+supposed to go will be delimited by the expression '// BUG //'.
 When presenting the correction, present the whole code and not just the corrected segment of the code.
 Put the whole corrected program within code delimiters, as follows:
                 ''' C
@@ -17,6 +17,7 @@ Put the whole corrected program within code delimiters, as follows:
 ### EXAMPLES
 
 ## Example
+
 ''' C
 
 static void
@@ -35,10 +36,15 @@ create_hashmap(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint32_t seed)
 		} while (D_RW(hashmap)->hash_fun_a == 0);
 		D_RW(hashmap)->hash_fun_b = (uint32_t)rand();
 		D_RW(hashmap)->hash_fun_p = HASH_FUNC_COEFF_P;
+		
+		// BUG //
 
 		D_RW(hashmap)->buckets = TX_ZALLOC(struct buckets, sz);
 		D_RW(D_RW(hashmap)->buckets)->nbuckets = len;
         TX_ADD(hashmap);
+		
+		// BUG //
+
 	} TX_ONABORT {
 		fprintf(stderr, "%s: transaction aborted: %s\n", __func__,
 			pmemobj_errormsg());
@@ -51,6 +57,7 @@ create_hashmap(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint32_t seed)
 ===== assistant =====
 
 ## Correction
+
 ''' C
 
     static void
@@ -69,9 +76,14 @@ create_hashmap(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint32_t seed)
 		} while (D_RW(hashmap)->hash_fun_a == 0);
 		D_RW(hashmap)->hash_fun_b = (uint32_t)rand();
 		D_RW(hashmap)->hash_fun_p = HASH_FUNC_COEFF_P;
-
+		
+		// BUG //
+		
 		D_RW(hashmap)->buckets = TX_ZALLOC(struct buckets, sz);
 		D_RW(D_RW(hashmap)->buckets)->nbuckets = len;
+		
+		// BUG //
+
 	} TX_ONABORT {
 		fprintf(stderr, "%s: transaction aborted: %s\n", __func__,
 			pmemobj_errormsg());
@@ -84,6 +96,7 @@ create_hashmap(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint32_t seed)
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * rbtree_map_rotate -- (internal) performs a left/right rotation around a node
@@ -109,7 +122,7 @@ rbtree_map_rotate(TOID(struct rbtree_map) map,
 
 	TX_ADD(NODE_P(node));
 	PM_EQU(NODE_PARENT_AT(node, NODE_LOCATION(node)), child);
-	// TX_SET(NODE_P(node), slots[NODE_LOCATION(node)], child);
+
 
 	PM_EQU(D_RW(child)->slots[c], node);
 	PM_EQU(D_RW(node)->parent, child);
@@ -152,7 +165,6 @@ rbtree_map_remove(PMEMobjpool *pop, TOID(struct rbtree_map) map, uint64_t key)
 		} else {
 			TX_ADD(y);
 			PM_EQU(NODE_PARENT_AT(y, NODE_LOCATION(y)), x);
-			//TX_SET(NODE_P(y), slots[NODE_LOCATION(y)], x);
 				
 		// BUG#2 //
 		
@@ -174,7 +186,6 @@ rbtree_map_remove(PMEMobjpool *pop, TOID(struct rbtree_map) map, uint64_t key)
 
 			TX_ADD(NODE_P(n));
 			PM_EQU(NODE_PARENT_AT(n, NODE_LOCATION(n)), y);
-			// TX_SET(NODE_P(n), slots[NODE_LOCATION(n)], y);
 				
 			// BUG#3 //
 		

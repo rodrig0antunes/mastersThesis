@@ -1,6 +1,6 @@
-### Corrected Persistent Memory Program
+### CORRECTED PERSISTENT MEMORY PROGRAM
 
-``` C
+''' C
 /*
  * hm_atomic_remove -- removes specified value from the hashmap,
  * returns:
@@ -24,11 +24,12 @@ hm_atomic_remove(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 	if (TOID_IS_NULL(var))
 		return OID_NULL;
 		
-	// BUG //
+		// BUG //
+
 	PM_EQU(D_RW(hashmap)->count_dirty, 1);
 	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
 			sizeof(D_RW(hashmap)->count_dirty));
-		
+	
 	if (POBJ_LIST_REMOVE_FREE(pop, &D_RW(buckets)->bucket[h],
 			var, list)) {
 		fprintf(stderr, "list remove failed: %s\n",
@@ -39,14 +40,12 @@ hm_atomic_remove(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 	PM_EQU(D_RW(hashmap)->count, D_RO(hashmap)->count - 1);
 	pmemobj_persist(pop, &D_RW(hashmap)->count,
 			sizeof(D_RW(hashmap)->count));
-
 	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
 			sizeof(D_RW(hashmap)->count_dirty));
 		
-	// BUG //
+		// BUG //
+		
 	PMTest_isPersistedBefore(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty), &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));
-
-	PM_EQU(D_RW(hashmap)->count_dirty, 0);
 	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
 			sizeof(D_RW(hashmap)->count_dirty));
 
@@ -60,13 +59,13 @@ hm_atomic_remove(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 
 	return D_RO(var)->value;
 }
-```
+'''.
 
 ### Explanation
-In the corrected program, the two bugs are fixed by moving the `pmemobj_persist()` calls to the correct locations. 
+In the incorrect program, there are two bugs to fix, both located in the area of the code delimited by the two '// BUG //' expressions.
 
-Bug 1: The first bug is fixed by moving the `pmemobj_persist()` call right after the update of `D_RW(hashmap)->count_dirty`. This ensures that the change to `D_RW(hashmap)->count_dirty` is durably stored in persistent memory before proceeding with the next operations.
+In the correction of the program, the first bug fix is to add the line 'pmemobj_persist(pop, &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));' right after the line 'PM_EQU(D_RW(hashmap)->count_dirty, 1);'. This ensures that the change to 'count_dirty' is durably stored in persistent memory.
 
-Bug 2: The second bug is fixed by moving the `pmemobj_persist()` call right after the update of `D_RW(hashmap)->count_dirty` to ensure that the change to `D_RW(hashmap)->count_dirty` is durably stored in persistent memory before the `PMTest_isPersistedBefore()` function is called.
+The second bug fix is to add the line 'pmemobj_persist(pop, &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));' right before the line 'PMTest_isPersistedBefore(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty), &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));'. This ensures that the change to 'count_dirty' is durably stored in persistent memory before the check is made.
 
-By making these changes, the program ensures that the changes to `D_RW(hashmap)->count_dirty` and `D_RW(hashmap)->count` are durably stored in persistent memory before proceeding with the next operations, preserving data integrity in persistent memory.
+By making these changes, the program ensures that the changes to 'count_dirty' are durably stored in persistent memory, preserving data integrity.

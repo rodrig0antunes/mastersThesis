@@ -1,5 +1,6 @@
-### Corrected Persistent Memory Program
-``` C
+### CORRECTED PERSISTENT MEMORY PROGRAM
+
+''' C
 /*
  * rbtree_map_rotate -- (internal) performs a left/right rotation around a node
  */
@@ -28,4 +29,4 @@ rbtree_map_rotate(TOID(struct rbtree_map) map,
 	PM_EQU(D_RW(child)->slots[c], node);
 	PM_EQU(D_RW(node)->parent, child);
 }
-```
+'''

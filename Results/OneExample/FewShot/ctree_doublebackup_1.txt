@@ -1,4 +1,5 @@
-### Corrected Persistent Memory Program
+### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ``` C
 /*
  * ctree_map_insert_leaf -- (internal) inserts a new leaf at the position
@@ -30,13 +31,16 @@ ctree_map_insert_leaf(struct tree_map_entry *p,
 
 	/* insert the found destination in the other slot */
 		
-	// BUG //
+		// BUG //
+		
 	PM_EQU(D_RW(new_node)->entries[!d], *p);
-	pmemobj_tx_add_range_direct(&D_RW(new_node)->entries[!d], sizeof(struct tree_map_entry));
-	pmemobj_tx_add_range_direct(p, sizeof(struct tree_map_entry));
-	// BUG //
+	pmemobj_tx_add_range_direct(p, sizeof(*p));
+	pmemobj_tx_add_range_direct(&D_RW(new_node)->entries[!d], sizeof(D_RW(new_node)->entries[!d]));
 
 	PM_EQU(p->key, 0);
 	PM_EQU(p->slot, new_node.oid);
+
+		// BUG //
+
 }
 ```

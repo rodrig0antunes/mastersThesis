@@ -1,4 +1,5 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ``` C
 /*
  * ctree_map_remove -- removes key-value pair from the map
@@ -29,13 +30,18 @@ ctree_map_remove(PMEMobjpool *pop, TOID(struct ctree_map) map, uint64_t key)
 		 * so it's swapped with the remaining node and then also freed.
 		 */
 		TX_BEGIN(pop) {
-			pmemobj_tx_add_range_direct(parent, sizeof(*parent));
+				
+		// BUG //
+
 			struct tree_map_entry *dest = parent;
 			TOID(struct tree_map_node) node;
 			TOID_ASSIGN(node, parent->slot);
-			pmemobj_tx_add_range_direct(D_RW(node)->entries, sizeof(D_RW(node)->entries));
-			PM_EQU(*dest, D_RW(node)->entries[
-				D_RO(node)->entries[0].key == leaf->key]);
+			pmemobj_tx_add_range_direct(dest, sizeof(*dest));
+			*dest = D_RW(node)->entries[
+				D_RO(node)->entries[0].key == leaf->key];
+		
+		// BUG //
+
 			TX_FREE(node);
 		} TX_END
 	}

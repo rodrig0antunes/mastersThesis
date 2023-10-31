@@ -1,4 +1,5 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * rbtree_map_rotate -- (internal) performs a left/right rotation around a node
@@ -10,12 +11,13 @@ rbtree_map_rotate(TOID(struct rbtree_map) map,
 	
 		// BUG //
 		
-	TX_ADD(node);
 	TX_ADD(map);
+	TX_ADD(node);
 	
 	TOID(struct tree_map_node) child = D_RO(node)->slots[!c];
 	TOID(struct tree_map_node) s = D_RO(map)->sentinel;
 
+	
 	TX_ADD(child);
 
 	PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
@@ -35,7 +37,8 @@ rbtree_map_rotate(TOID(struct rbtree_map) map,
 '''.
 
 ## Explanation
-In the correction, two lines 'TX_ADD(node);' and 'TX_ADD(map);' are added before accessing the 'node' and 'map' variables. 
-These lines tell the transaction system that it is intended to modify the 'node' and 'map' variables during the transaction. It essentially registers 'node' and 'map' as a part of the transaction, making sure that if the transaction aborts, the changes to 'node' and 'map' are rolled back as well.
-By adding 'TX_ADD(node);' and 'TX_ADD(map);', the transaction system ensures that the modifications to 'node' and 'map' are properly recorded. 
-If the transaction is successful, these changes will be committed, and if the transaction aborts, they will be rolled back, maintaining the consistency of your persistent memory data structures.
+In the example, there are two bugs to repair, located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, the transaction system is added to ensure that the modifications made to 'map' and 'node' are properly recorded and persisted in the persistent memory pool.
+By adding 'TX_ADD(map);' and 'TX_ADD(node);', the transaction system ensures that the modifications made to 'map' and 'node' are properly recorded and persisted in the persistent memory pool.
+This correction ensures that the changes made to 'map' and 'node' are properly preserved and consistent in the persistent memory.

@@ -1,79 +1,52 @@
-To resolve the bug, we need to identify the issue and make the necessary corrections. Let's analyze the code step by step:
+To resolve the bug, we need to identify the issue in the code and make the necessary corrections. 
 
-1. The first bug is located in the following code block:
+Looking at the code, the bug seems to be related to the condition `if (TOID_IS_NULL(D_RO(node)->slots[0]))`. This condition checks if the node is a leaf node by checking if the first slot is NULL. However, the bug is that it should be checking if the last slot is NULL instead.
 
-```C
-if (TOID_IS_NULL(D_RO(node)->slots[0])) { /* leaf */
-    // TX_ADD(node);
-    if (D_RO(node)->n == 1 || p == BTREE_ORDER - 2)
-        PM_EQU(D_RW(node)->items[p], EMPTY_ITEM);
+To fix this bug, we need to change the condition to `if (TOID_IS_NULL(D_RO(node)->slots[D_RO(node)->n]))`. This will correctly check if the last slot is NULL, indicating that the node is a leaf node.
 
-    // BUG //
-}
-```
+Here's the corrected code:
 
-The bug seems to be that the code block after the comment `// BUG //` is missing. We need to add the missing code block.
-
-2. The second bug is located in the following code block:
-
-```C
-// BUG //
-
-else if (D_RO(node)->n != 1) {
-    PM_MEMMOVE(&D_RW(node)->items[p],
-               &D_RW(node)->items[p + 1],
-               sizeof(struct tree_map_node_item) * (D_RO(node)->n - p));
-}
-
-PM_EQU(D_RW(node)->n, D_RO(node)->n - 1);
-return;
-```
-
-The bug seems to be that the code block after the comment `// BUG //` is missing. We need to add the missing code block.
-
-Now, let's correct the code and present the whole corrected program:
-
-```C
+``` C
 /*
-* btree_map_remove_from_node -- (internal) removes element from node
-*/
+ * btree_map_remove_from_node -- (internal) removes element from node
+ */
 static void
 btree_map_remove_from_node(TOID(struct btree_map) map,
-                           TOID(struct tree_map_node) node,
-                           TOID(struct tree_map_node) parent, int p)
+	TOID(struct tree_map_node) node,
+	TOID(struct tree_map_node) parent, int p)
 {
 
-    if (TOID_IS_NULL(D_RO(node)->slots[0])) { /* leaf */
-        // TX_ADD(node);
-        if (D_RO(node)->n == 1 || p == BTREE_ORDER - 2)
-            PM_EQU(D_RW(node)->items[p], EMPTY_ITEM);
+	// BUG //
+	if (TOID_IS_NULL(D_RO(node)->slots[D_RO(node)->n])) { /* leaf */
 
-        // BUG //
-        else {
-            PM_MEMMOVE(&D_RW(node)->items[p],
-                       &D_RW(node)->items[p + 1],
-                       sizeof(struct tree_map_node_item) * (D_RO(node)->n - p));
-        }
+		if (D_RO(node)->n == 1 || p == BTREE_ORDER - 2)
+			PM_EQU(D_RW(node)->items[p], EMPTY_ITEM);
+		else if (D_RO(node)->n != 1) {
+			PM_MEMMOVE(&D_RW(node)->items[p],
+				&D_RW(node)->items[p + 1],
+				sizeof(struct tree_map_node_item) *
+				(D_RO(node)->n - p));
+		}
 
-        PM_EQU(D_RW(node)->n, D_RO(node)->n - 1);
-        return;
-    }
+		PM_EQU(D_RW(node)->n, D_RO(node)->n - 1);
+		return;
+	}
 
-    /* can't delete from non-leaf nodes, remove successor */
-    TOID(struct tree_map_node) rchild = D_RW(node)->slots[p + 1];
-    TOID(struct tree_map_node) lp = node;
-    TOID(struct tree_map_node) lm =
-        btree_map_get_leftmost_leaf(map, rchild, &lp);
+	/* can't delete from non-leaf nodes, remove successor */
+	TOID(struct tree_map_node) rchild = D_RW(node)->slots[p + 1];
+	TOID(struct tree_map_node) lp = node;
+	TOID(struct tree_map_node) lm =
+		btree_map_get_leftmost_leaf(map, rchild, &lp);
 
-    TX_ADD_FIELD(node, items[p]);
-    PM_EQU(D_RW(node)->items[p], D_RO(lm)->items[0]);
+	TX_ADD_FIELD(node, items[p]);
+	PM_EQU(D_RW(node)->items[p], D_RO(lm)->items[0]);
 
-    btree_map_remove_from_node(map, lm, lp, 0);
+	btree_map_remove_from_node(map, lm, lp, 0);
 
-    if (D_RO(lm)->n < BTREE_MIN) /* right child can be deficient now */
-        btree_map_rebalance(map, lm, lp,
-                            TOID_EQUALS(lp, node) ? p + 1 : 0);
+	if (D_RO(lm)->n < BTREE_MIN) /* right child can be deficient now */
+		btree_map_rebalance(map, lm, lp,
+			TOID_EQUALS(lp, node) ? p + 1 : 0);
 }
 ```
 
-Please note that the code has been corrected by adding the missing code blocks after the `// BUG //` comments.
+Now the bug has been fixed and the program should work as expected.

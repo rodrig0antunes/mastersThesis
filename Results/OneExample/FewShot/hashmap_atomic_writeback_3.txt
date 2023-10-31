@@ -1,4 +1,5 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ``` C
 /*
  * hm_atomic_insert -- inserts specified value into the hashmap,
@@ -23,11 +24,12 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 		num++;
 	}
 	
-	// BUG //
+		// BUG //
+
 	PM_EQU(D_RW(hashmap)->count_dirty, 1);
-	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
-			sizeof(D_RW(hashmap)->count_dirty));
-	// BUG //
+	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));
+	
+		// BUG //
 
 	struct entry_args args = {
 		.key = key,
@@ -43,15 +45,13 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 	}
 
 	PM_EQU(D_RW(hashmap)->count, (D_RW(hashmap)->count + 1));
-	pmemobj_persist(pop, &D_RW(hashmap)->count,
-			sizeof(D_RW(hashmap)->count));
+	pmemobj_persist(pop, &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));
 
 	PMTest_isPersistedBefore(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty), &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));
 
 
 	PM_EQU(D_RW(hashmap)->count_dirty, 0);
-	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
-			sizeof(D_RW(hashmap)->count_dirty));
+	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));
 
 	PMTest_isPersistedBefore(&D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count), &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));
 

@@ -1,4 +1,5 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * btree_map_find_dest_node -- (internal) finds a place to insert the new key at
@@ -25,12 +26,13 @@ btree_map_find_dest_node(TOID(struct btree_map) map,
 			PM_EQU(D_RW(up)->slots[0], n);
 			PM_EQU(D_RW(up)->slots[1], right);
 
-			// BUG //
-			
+		// BUG //
+		
+			TX_ADD_DIRECT(map);
 			PM_EQU(D_RW(map)->root, up);
 			n = up;
 
-			// BUG //
+		// BUG //
 
 		}
 	}

@@ -5,7 +5,7 @@ You are a helpful programming assistant and an expert in the development of Pers
 The user has written a program in C programming language while using the PMDK library libpmemobj. However, the program has some bugs and is not working as expected. 
 The user has analysed the program with a bug detection tool that has located the bug or bugs. You will use this information to generate a corrected version of the program.
 The bug or bugs to repair will be located in an area of the code delimited by an expression. The beggining and end of the area of the code where a bug is and where the fix is 
-supposed to go will be delimited by the exprexion '// BUG //'.
+supposed to go will be delimited by the expression '// BUG //'.
 When presenting the correction, present the whole code and not just the corrected segment of the code.
 Put the whole corrected program within code delimiters, as follows:
                 ''' C
@@ -17,6 +17,7 @@ Put the whole corrected program within code delimiters, as follows:
 ### EXAMPLES
 
 ## Example
+
 ''' C
 
 int main(int argc, char *argv[]) {
@@ -38,10 +39,14 @@ int main(int argc, char *argv[]) {
 
     int *value_ptr = pmemobj_direct(value);
 
+    // BUG //
+
     if (*value_ptr == 42) {
         TX_ADD(value);
         TX_ADD(value);
     }
+
+    // BUG //
 
     pmemobj_close(pop);
 
@@ -53,6 +58,7 @@ int main(int argc, char *argv[]) {
 ===== assistant =====
 
 ## Correction
+
 ''' C
  
 int main(int argc, char *argv[]) {
@@ -74,9 +80,13 @@ int main(int argc, char *argv[]) {
 
     int *value_ptr = pmemobj_direct(value);
 
+    // BUG //
+
     if (*value_ptr == 42) {
         TX_ADD(value);
     }
+
+    // BUG //
 
     pmemobj_close(pop);
 
@@ -86,12 +96,15 @@ int main(int argc, char *argv[]) {
 '''.
 
 ## Explanation
+In the example, the bug to repair is located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fix is put in the area of the code delimited by the two '// BUG //' expressions.
 In the correction, one of the 'TX_ADD(value);' calls has been removed because it is redundant.
 The correction eliminates unnecessary overhead and maintains the correct behaviour intended in the code, including the value in the transaction if the condition is met, preserving the correct transactional behaviour.
 
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * btree_map_create_split_node -- (internal) splits a node into two
@@ -105,7 +118,6 @@ btree_map_create_split_node(TOID(struct tree_map_node) node,
 
 	TOID(struct tree_map_node) right = TX_ZNEW(struct tree_map_node);
 	
-	// TX_ADD(node);
 	
 	int c = (BTREE_ORDER / 2);
 	*m = D_RO(node)->items[c - 1]; /* select median item */

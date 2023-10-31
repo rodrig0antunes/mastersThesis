@@ -1,5 +1,6 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
-''' C
+
+``` C
 /*
  * rbtree_map_repair_branch -- (internal) restores red-black tree in one branch
  */
@@ -9,56 +10,92 @@ rbtree_map_repair_branch(TOID(struct rbtree_map) map,
 {
 
 		// BUG //
-	TX_BEGIN(map.oid.pool) {
-		TX_ADD_DIRECT(n);
-		TX_ADD_DIRECT(NODE_PARENT_AT(n, !c));
-		TX_ADD_DIRECT(NODE_PARENT_AT(n, c));
-		TX_ADD_DIRECT(NODE_P(n));
-		TX_ADD_DIRECT(D_RW(NODE_P(n))->slots[!c]);
-		TX_ADD_DIRECT(D_RW(NODE_P(n))->slots[c]);
-		TX_ADD_DIRECT(D_RW(D_RO(NODE_PARENT_AT(n, !c)))->color);
-		TX_ADD_DIRECT(D_RW(NODE_P(n))->color);
-		TX_ADD_DIRECT(D_RW(D_RO(NODE_PARENT_AT(n, c)))->color);
-		TX_ADD_DIRECT(D_RW(D_RO(D_RO(NODE_PARENT_AT(n, !c)))->slots[RB_RIGHT])->color);
-		TX_ADD_DIRECT(D_RW(D_RO(D_RO(NODE_PARENT_AT(n, !c)))->slots[RB_LEFT])->color);
-		
-	TOID(struct tree_map_node) sb = NODE_PARENT_AT(n, !c); /* sibling */
-	if (D_RO(sb)->color == COLOR_RED) {
-		PM_EQU(D_RW(sb)->color, COLOR_BLACK);
-		TX_SET(NODE_P(n), color, COLOR_RED);
-		rbtree_map_rotate(map, NODE_P(n), c);
-		sb = NODE_PARENT_AT(n, !c);
-		
-		// BUG //
-	}
-	} TX_ONABORT {
-		// handle transaction abort
-	} TX_END
 
-	if (D_RO(D_RO(sb)->slots[RB_RIGHT])->color == COLOR_BLACK &&
-		D_RO(D_RO(sb)->slots[RB_LEFT])->color == COLOR_BLACK) {
-		TX_SET(sb, color, COLOR_RED);
-		return D_RO(n)->parent;
-	} else {
-		if (D_RO(D_RO(sb)->slots[!c])->color == COLOR_BLACK) {
-			TX_SET(D_RW(sb)->slots[c], color, COLOR_BLACK);
-			TX_SET(sb, color, COLOR_RED);
-			rbtree_map_rotate(map, sb, !c);
-			sb = NODE_PARENT_AT(n, !c);
-		}
-		TX_SET(sb, color, D_RO(NODE_P(n))->color);
-		TX_SET(NODE_P(n), color, COLOR_BLACK);
-		TX_SET(D_RW(sb)->slots[!c], color, COLOR_BLACK);
-		rbtree_map_rotate(map, NODE_P(n), c);
-
-		return RB_FIRST(map);
-	}
-
-	return n;
-}
-'''.
-
-### Explanation
-In the correction, a new transaction block is added around the code block where the bug is located. This ensures that all the modifications made within this block are treated as a single atomic operation. 
-Within the transaction block, the 'TX_ADD_DIRECT' macro is used to register the direct modifications made to the persistent memory objects. This ensures that the transaction system properly tracks these modifications and includes them in the transaction's undo log. 
-By adding the transaction block and registering the modifications, the program ensures that the changes made to the persistent memory objects are properly recorded and can be rolled back in case of a transaction abort.
+	TX_ADD_DIRECT(NODE_P(n));
+	TX_ADD_DIRECT(D_RW(sb)->color);
+	TX_ADD_DIRECT(NODE_P(n));
+	TX_ADD_DIRECT(D_RW(n)->parent);
+	TX_ADD_DIRECT(D_RW(sb)->color);
+	TX_ADD_DIRECT(D_RW(sb)->slots[c]);
+	TX_ADD_DIRECT(D_RW(sb)->color);
+	TX_ADD_DIRECT(D_RW(sb)->slots[!c]);
+	TX_ADD_DIRECT(D_RW(NODE_P(n))->color);
+	TX_ADD_DIRECT(D_RW(NODE_P(n))->color);
+	TX_ADD_DIRECT(D_RW(sb)->slots[!c]);
+	TX_ADD_DIRECT(D_RW(NODE_P(n))->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!c])->color);
+	TX_ADD_DIRECT(D_RW(D_RW(sb)->slots[!

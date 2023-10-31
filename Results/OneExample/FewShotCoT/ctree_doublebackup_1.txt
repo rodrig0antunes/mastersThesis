@@ -1,5 +1,6 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
-''' C
+
+``` C
 /*
  * ctree_map_insert_leaf -- (internal) inserts a new leaf at the position
  */
@@ -31,15 +32,22 @@ ctree_map_insert_leaf(struct tree_map_entry *p,
 	/* insert the found destination in the other slot */
 		
 		// BUG //
+
 	PM_EQU(D_RW(new_node)->entries[!d], *p);
-	pmemobj_tx_add_range_direct(&D_RW(new_node)->entries[!d], sizeof(struct tree_map_entry));
-	pmemobj_tx_add_range_direct(p, sizeof(struct tree_map_entry));
+
+	pmemobj_tx_add_range_direct(p, sizeof(*p));
+	pmemobj_tx_add_range_direct(&D_RW(new_node)->entries[!d], sizeof(D_RW(new_node)->entries[!d]));
+
 	PM_EQU(p->key, 0);
 	PM_EQU(p->slot, new_node.oid);
+
 		// BUG //
+
 }
-'''.
+```
 
 ### Explanation
-In the correction, the missing code has been added between the '// BUG //' markers. The missing code is responsible for adding the modified objects to the transaction using 'pmemobj_tx_add_range_direct' function. 
-The corrected code adds the modified objects 'D_RW(new_node)->entries[!d]' and 'p' to the transaction using 'pmemobj_tx_add_range_direct' function. This ensures that the modifications made to these objects are persistent and will be committed to the persistent memory.
+In the example, there are two bugs to repair, located in the area of the code delimited by the two '// BUG //' expressions.
+In the correction of the example, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, the first bug fix is to add the missing 'sizeof' operator in the 'pmemobj_tx_add_range_direct' call. The correct call should be 'pmemobj_tx_add_range_direct(&D_RW(new_node)->entries[!d], sizeof(D_RW(new_node)->entries[!d]));'. This ensures that the correct range is added to the transaction.
+The second bug fix is to add the missing 'sizeof' operator in the 'pmemobj_tx_add_range_direct' call. The correct call should be 'pmemobj_tx_add_range_direct(p, sizeof(*p));'. This ensures that the correct range is added to the transaction.

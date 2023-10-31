@@ -1,4 +1,5 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ``` C
 /*
  * ctree_map_insert -- inserts a new key-value pair into the map
@@ -22,14 +23,18 @@ ctree_map_insert(PMEMobjpool *pop, TOID(struct ctree_map) map,
 	TX_BEGIN(pop) {
 		
 		// BUG //
+
+		TX_ADD_DIRECT(p);
 		if (p->key == 0 || p->key == key) {
 			PM_EQU(*p, e);
 			pmemobj_tx_add_range_direct(p, sizeof(*p));
 		} else {
 			ctree_map_insert_leaf(&D_RW(map)->root, e,
 					find_crit_bit(p->key, key));
-		}
+		
 		// BUG //
+
+		}
 	} TX_ONABORT {
 		ret = 1;
 	} TX_END

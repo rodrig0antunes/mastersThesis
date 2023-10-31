@@ -1,4 +1,5 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ``` C
 /*
  * rbtree_map_insert_bst -- (internal) inserts a node in regular BST fashion
@@ -20,12 +21,9 @@ rbtree_map_insert_bst(TOID(struct rbtree_map) map, TOID(struct tree_map_node) n)
 	
 	// BUG //
 	TX_BEGIN(pop) {
-		TX_ADD_DIRECT(n);
-		TX_ADD_DIRECT(parent);
-		PM_EQU(D_RW(n)->slots[RB_PARENT], parent);
+		TX_SET(n, parent, parent);
 		PM_EQU(*dst, n);
 	} TX_END
-
 	// BUG //
 }
 ```

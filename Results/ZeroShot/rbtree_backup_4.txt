@@ -1,28 +1,32 @@
+### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ``` C
 /*
-* rbtree_map_insert_bst -- (internal) inserts a node in regular BST fashion
-*/
+ * rbtree_map_insert_bst -- (internal) inserts a node in regular BST fashion
+ */
 static void
 rbtree_map_insert_bst(TOID(struct rbtree_map) map, TOID(struct tree_map_node) n)
 {
-    TOID(struct tree_map_node) parent = D_RO(map)->root;
-    TOID(struct tree_map_node) *dst = &RB_FIRST(map);
-    TOID(struct tree_map_node) s = D_RO(map)->sentinel;
+	TOID(struct tree_map_node) parent = D_RO(map)->root;
+	TOID(struct tree_map_node) *dst = &RB_FIRST(map);
+	TOID(struct tree_map_node) s = D_RO(map)->sentinel;
 
-    PM_EQU(D_RW(n)->slots[RB_LEFT], s);
-    PM_EQU(D_RW(n)->slots[RB_RIGHT], s);
+	PM_EQU(D_RW(n)->slots[RB_LEFT], s);
+	PM_EQU(D_RW(n)->slots[RB_RIGHT], s);
 
-    while (!NODE_IS_NULL(*dst)) {
-        parent = *dst;
-        dst = &D_RW(*dst)->slots[D_RO(n)->key > D_RO(*dst)->key];
-    }
+	while (!NODE_IS_NULL(*dst)) {
+		parent = *dst;
+		dst = &D_RW(*dst)->slots[D_RO(n)->key > D_RO(*dst)->key];
+	}
+	
+	// BUG //
+	TX_BEGIN(map) {
+		TX_SET(n, parent, parent);
+		PM_EQU(*dst, n);
+	} TX_END
 
-    // BUG //
-    TX_SET(n, parent, parent);
-
-    pmemobj_tx_add_range_direct(dst, sizeof(*dst));
-    PM_EQU(*dst, n);
-
-    // BUG //
+	// BUG //
 }
 ```
+
+In the corrected program, the bug is fixed by enclosing the code block that modifies the persistent memory inside a transaction block using `TX_BEGIN` and `TX_END` macros. This ensures that the modifications to the persistent memory are atomic and durable.

@@ -1,4 +1,5 @@
-### CORRECTED PERSISTENT MEMORY PROGRAM
+### Correction
+
 ''' C
 /*
  * hm_tx_remove -- removes specified value from the hashmap,
@@ -25,10 +26,9 @@ hm_tx_remove(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint64_t key)
 
 	TX_BEGIN(pop) {
 		if (TOID_IS_NULL(prev))
-			TX_ADD_FIELD(D_RW(buckets), bucket[h]);
+			TX_ADD_FIELD(D_RW(hashmap)->buckets, bucket[h]);
 		else
-			TX_ADD_FIELD(D_RW(prev), next);
-		TX_ADD_FIELD(D_RW(hashmap), count);
+			TX_ADD_FIELD(prev, next);
 
 		if (TOID_IS_NULL(prev))
 			PM_EQU(D_RW(buckets)->bucket[h], D_RO(var)->next);
@@ -49,11 +49,9 @@ hm_tx_remove(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap, uint64_t key)
 }
 '''.
 
-## Explanation
-In the correction, the two lines marked as 'BUG' are modified. 
-The first modification is 'TX_ADD_FIELD(D_RW(buckets), bucket[h]);' instead of 'TX_ADD_FIELD(D_RO(hashmap)->buckets, bucket[h]);'. 
-This change ensures that the 'bucket[h]' field of the 'buckets' object is properly registered for modification in the transaction. 
-The second modification is 'TX_ADD_FIELD(D_RW(hashmap), count);' instead of '// TX_ADD_FIELD(hashmap, count);'. 
-This change ensures that the 'count' field of the 'hashmap' object is properly registered for modification in the transaction. 
-By adding these two lines, the modifications made to the 'buckets' and 'count' fields during the transaction are properly recorded. 
+### Explanation
+In the example, there are two bugs to repair, located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, the missing 'TX_ADD_FIELD' statements are added to register the modifications made to the fields 'bucket[h]' and 'next' in the transaction. 
+By adding 'TX_ADD_FIELD(D_RW(hashmap)->buckets, bucket[h]);' and 'TX_ADD_FIELD(prev, next);', the transaction system ensures that the modifications to these fields are properly recorded. 
 If the transaction is successful, these changes will be committed, and if the transaction aborts, they will be rolled back, maintaining the consistency of your persistent memory data structures.

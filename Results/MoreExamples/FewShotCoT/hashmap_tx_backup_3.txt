@@ -1,5 +1,6 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
-''' C
+
+``` C
 /*
  * hm_tx_insert -- inserts specified value into the hashmap,
  * returns:
@@ -28,17 +29,23 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 
 	int ret = 0;
 	TX_BEGIN(pop) {
-		TX_ADD_FIELD(D_RW(buckets)->bucket[h], next);
+
 		TX_ADD_FIELD(hashmap, count);
 
 		// BUG //
 		
 		TOID(struct entry) e = TX_NEW(struct entry);
+		PMTest_assign(&(D_RW(e)->key), sizeof(struct entry));
 		(D_RW(e)->key) = (key);
 		(D_RW(e)->value) = (value);
 		(D_RW(e)->next) = (D_RO(buckets)->bucket[h]);
-		(D_RW(buckets)->bucket[h]) = (e);
-		(D_RW(hashmap)->count) = (D_RO(hashmap)->count+1);
+		/*
+		PM_EQU((D_RW(e)->key), (key));
+		PM_EQU((D_RW(e)->value), (value));
+		PM_EQU((D_RW(e)->next), (D_RO(buckets)->bucket[h]));
+		*/
+		PM_EQU((D_RW(buckets)->bucket[h]), (e));
+		PM_EQU((D_RW(hashmap)->count), (D_RW(hashmap)->count+1));
 		num++;
 	} TX_ONABORT {
 		fprintf(stderr, "transaction aborted: %s\n",
@@ -56,10 +63,12 @@ hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
 
 	return 0;
 }
-'''.
+```
 
-## Explanation
-In the correction, two lines are added to the code to fix the bug. 
-The first line 'TX_ADD_FIELD(D_RW(buckets)->bucket[h], next);' is added to register the modification of the 'next' field of the 'entry' struct in the transaction. This ensures that if the transaction aborts, the changes to the 'next' field are rolled back as well.
-The second line 'TX_ADD_FIELD(hashmap, count);' is added to register the modification of the 'count' field of the 'hashmap_tx' struct in the transaction. This ensures that if the transaction aborts, the changes to the 'count' field are rolled back as well.
-By adding these two lines, the transaction system ensures that the modifications to the 'next' field and the 'count' field are properly recorded. If the transaction is successful, these changes will be committed, and if the transaction aborts, they will be rolled back, maintaining the consistency of your persistent memory data structures.
+### Explanation
+In the example, the bug to repair is located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fix is put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, the line 'TX_ADD_FIELD(hashmap, count);' is added before allocating memory for the new struct 'entry'. 
+This line tells the transaction system that it is intended to modify the 'count' field of the 'hashmap' struct during the transaction. It essentially registers 'count' as a part of the transaction, making sure that if the transaction aborts, the changes to 'count' are rolled back as well.
+By adding 'TX_ADD_FIELD(hashmap, count);', the transaction system ensures that the assignment of the new struct 'entry' to 'buckets' is properly recorded. 
+If the transaction is successful, this change will be committed, and if the transaction aborts, it will be rolled back, maintaining the consistency of your persistent memory data structures.

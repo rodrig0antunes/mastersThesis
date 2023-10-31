@@ -1,4 +1,5 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ``` C
 /*
  * hm_atomic_remove -- removes specified value from the hashmap,
@@ -24,9 +25,8 @@ hm_atomic_remove(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 		return OID_NULL;
 		
 	// BUG //
-	PM_EQU(D_RW(hashmap)->count_dirty, 1);
-	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
-			sizeof(D_RW(hashmap)->count_dirty));
+	
+	D_RW(hashmap)->count_dirty = 1;
 	
 	if (POBJ_LIST_REMOVE_FREE(pop, &D_RW(buckets)->bucket[h],
 			var, list)) {
@@ -35,14 +35,17 @@ hm_atomic_remove(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 		return OID_NULL;
 	}
 
-	// BUG //
-	PM_EQU(D_RW(hashmap)->count, D_RO(hashmap)->count - 1);
+	D_RW(hashmap)->count = D_RO(hashmap)->count - 1;
+	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
+			sizeof(D_RW(hashmap)->count_dirty));
 	pmemobj_persist(pop, &D_RW(hashmap)->count,
 			sizeof(D_RW(hashmap)->count));
 		
+	// BUG //
+	
 	PMTest_isPersistedBefore(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty), &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));
 
-	PM_EQU(D_RW(hashmap)->count_dirty, 0);
+	D_RW(hashmap)->count_dirty = 0;
 	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
 			sizeof(D_RW(hashmap)->count_dirty));
 

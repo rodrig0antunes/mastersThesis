@@ -5,7 +5,7 @@ You are a helpful programming assistant and an expert in the development of Pers
 The user has written a program in C programming language while using the PMDK library libpmemobj. However, the program has some bugs and is not working as expected. 
 The user has analysed the program with a bug detection tool that has located the bug or bugs. You will use this information to generate a corrected version of the program.
 The bug or bugs to repair will be located in an area of the code delimited by an expression. The beggining and end of the area of the code where a bug is and where the fix is 
-supposed to go will be delimited by the exprexion '// BUG //'.
+supposed to go will be delimited by the expression '// BUG //'.
 When presenting the correction, present the whole code and not just the corrected segment of the code.
 Put the whole corrected program within code delimiters, as follows:
                 ''' C
@@ -17,15 +17,20 @@ Put the whole corrected program within code delimiters, as follows:
 ### EXAMPLES
 
 ## Example 1
+
 ''' C
 
 PMEMoid retoid = D_RO(var)->value;
 	TX_BEGIN(pop) {
+		
+		// BUG //
+		
 		if (TOID_IS_NULL(prev))
 			TX_ADD_FIELD(D_RO(hashmap)->buckets, bucket[h]);
-		else
-            // TX_ADD_FIELD(prev, next);
+
 		TX_ADD_FIELD(hashmap, count);
+
+		// BUG //
 
 		if (TOID_IS_NULL(prev))
 			D_RW(buckets)->bucket[h] = D_RO(var)->next;
@@ -41,15 +46,21 @@ PMEMoid retoid = D_RO(var)->value;
 ===== assistant =====
 
 ## Correction 1
+
 ''' C
 
 PMEMoid retoid = D_RO(var)->value;
 	TX_BEGIN(pop) {
+
+		// BUG //
+
 		if (TOID_IS_NULL(prev))
 			TX_ADD_FIELD(D_RO(hashmap)->buckets, bucket[h]);
 		else
 			TX_ADD_FIELD(prev, next);
 		TX_ADD_FIELD(hashmap, count);
+
+		// BUG //
 
 		if (TOID_IS_NULL(prev))
 			D_RW(buckets)->bucket[h] = D_RO(var)->next;
@@ -62,12 +73,15 @@ PMEMoid retoid = D_RO(var)->value;
 '''.
 
 ## Explanation
-In the correction, the commented line is removed, and 'TX_ADD_FIELD(prev, next);' is now included inside the conditional block. 'TX_ADD_FIELD(prev, next);' registers the 'prev'->'next' field as part of the transaction, ensuring that if 'prev' is not null, the update to 'prev'->'next' is properly included in the transaction, maintaining data consistency.	
+In the example, the bug to repair is located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fix is put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, it is added an 'else' to the conditional block and 'TX_ADD_FIELD(prev, next);' is added and included inside. 'TX_ADD_FIELD(prev, next);' registers the 'prev'->'next' field as part of the transaction, ensuring that if 'prev' is not null, the update to 'prev'->'next' is properly included in the transaction, maintaining data consistency.	
 This correction helps maintain the integrity of the data when using transactional memory updates.
 
 ===== user =====
 
 ## Example 2
+
 ''' C
 
 void write_hello_string (char *buf, char *path)
@@ -85,10 +99,14 @@ void write_hello_string (char *buf, char *path)
 	PMEMoid root = pmemobj_root(pop, sizeof (struct my_root));
 	struct my_root *rootp = pmemobj_direct(root);
     
+	// BUG //
+
     pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));
 	
     rootp->len = strlen(buf);
 
+	// BUG //
+	
 	printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
 	pmemobj_close(pop);	
 
@@ -100,6 +118,7 @@ void write_hello_string (char *buf, char *path)
 ===== assistant =====
 
 ## Correction 2
+
 ''' C
 
 void write_hello_string (char *buf, char *path)
@@ -117,10 +136,14 @@ void write_hello_string (char *buf, char *path)
 	PMEMoid root = pmemobj_root(pop, sizeof (struct my_root));
     struct my_root *rootp = pmemobj_direct(root);
     
+	// BUG //
+
     rootp->len = strlen(buf);
     
     pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));
 	
+	// BUG //
+
     printf("\nWrite the (%s) string to persistent-memory.\n", rootp->buf);
 	pmemobj_close(pop);	
 
@@ -130,6 +153,8 @@ void write_hello_string (char *buf, char *path)
 '''.
 
 ## Explanation
+In the example, the bug to repair is located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fix is put in the area of the code delimited by the two '// BUG //' expressions.
 In the correction, the order of operations is changed. In the new order, first comes the update 'rootp->len' with the length of 'buf' and then the use 'pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));' 
 to ensure that the updated value of 'rootp->len' is correctly persisted in persistent memory.
 By changing the order it is ensured that the correct persistency of data to persistent memory. This guarantees that the new value is stored safely in the persistent memory pool.
@@ -138,6 +163,7 @@ By changing the order it is ensured that the correct persistency of data to pers
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * btree_map_find_dest_node -- (internal) finds a place to insert the new key at

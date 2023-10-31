@@ -1,4 +1,5 @@
-### CORRECTED PERSISTENT MEMORY PROGRAM
+## Correction
+
 ''' C
 /*
  * rbtree_map_insert_bst -- (internal) inserts a node in regular BST fashion
@@ -18,20 +19,23 @@ rbtree_map_insert_bst(TOID(struct rbtree_map) map, TOID(struct tree_map_node) n)
 		dst = &D_RW(*dst)->slots[D_RO(n)->key > D_RO(*dst)->key];
 	}
 	
-	// BUG //
-	TX_BEGIN(pop) {
-		TX_ADD_DIRECT(dst);
-		TX_ADD_DIRECT(n);
-		TX_SET(n, parent, parent);
-		PM_EQU(*dst, n);
-	} TX_END
+		// BUG //
+
+	TX_ADD_DIRECT(n);
+	TX_SET(n, parent, parent);
+
+
+	PM_EQU(*dst, n);
+
+		// BUG //
 
 }
 '''.
 
 ## Explanation
-In the correction, the code is wrapped inside a transaction block using 'TX_BEGIN' and 'TX_END'. 
-Within the transaction block, the 'dst' pointer and the 'n' node are registered as direct modifications using 'TX_ADD_DIRECT'. 
-This ensures that the modifications to 'dst' and 'n' are properly recorded by the transaction system. 
-The 'TX_SET' function is used to set the parent of the 'n' node, and 'PM_EQU' is used to assign 'n' to 'dst'. 
-By including these changes within a transaction block, the modifications to the persistent memory data structure are made atomically, ensuring consistency and durability.
+In the example, the bug to repair is located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fix is put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, a new line 'TX_ADD_DIRECT(n);' is added before setting the value of 'n->parent'. 
+This line tells the transaction system that it is intended to modify the 'n' pointer during the transaction. It essentially registers 'n' as a part of the transaction, making sure that if the transaction aborts, the changes to 'n' are rolled back as well.
+By adding 'TX_ADD_DIRECT(n);', the transaction system ensures that the assignment of 'n->parent' is properly recorded. 
+If the transaction is successful, this change will be committed, and if the transaction aborts, it will be rolled back, maintaining the consistency of your persistent memory data structures.

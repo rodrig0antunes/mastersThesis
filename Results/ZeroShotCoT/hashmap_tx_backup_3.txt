@@ -1,66 +1,64 @@
-To resolve the bug, we need to add the necessary transactional operations using the libpmemobj library. Based on the provided code, the bug seems to be related to the missing transactional operations for the hashmap and bucket fields.
+To resolve the bug, we need to add the necessary transactional annotations to the code. 
 
-Here is the corrected version of the program:
+Here is the corrected version of the code:
 
-```C
+``` C
 /*
-* hm_tx_insert -- inserts specified value into the hashmap,
-* returns:
-* - 0 if successful,
-* - 1 if value already existed,
-* - -1 if something bad happened
-*/
+ * hm_tx_insert -- inserts specified value into the hashmap,
+ * returns:
+ * - 0 if successful,
+ * - 1 if value already existed,
+ * - -1 if something bad happened
+ */
 int
 hm_tx_insert(PMEMobjpool *pop, TOID(struct hashmap_tx) hashmap,
-             uint64_t key, PMEMoid value)
+	uint64_t key, PMEMoid value)
 {
-    TOID(struct buckets) buckets = D_RO(hashmap)->buckets;
-    TOID(struct entry) var;
+	TOID(struct buckets) buckets = D_RO(hashmap)->buckets;
+	TOID(struct entry) var;
 
-    uint64_t h = hash(&hashmap, &buckets, key);
-    int num = 0;
+	uint64_t h = hash(&hashmap, &buckets, key);
+	int num = 0;
 
-    for (var = D_RO(buckets)->bucket[h];
-         !TOID_IS_NULL(var);
-         var = D_RO(var)->next) {
-        if (D_RO(var)->key == key)
-            return 1;
-        num++;
-    }
-    // BUG //
+	for (var = D_RO(buckets)->bucket[h];
+			!TOID_IS_NULL(var);
+			var = D_RO(var)->next) {
+		if (D_RO(var)->key == key)
+			return 1;
+		num++;
+	}
 
-    int ret = 0;
-    TX_BEGIN(pop) {
-        TX_ADD_FIELD(D_RW(buckets)->bucket[h], next);
-        TX_ADD_FIELD(D_RW(hashmap)->count);
-        TX_ADD_FIELD(D_RW(buckets)->bucket[h], key);
-        TX_ADD_FIELD(D_RW(buckets)->bucket[h], value);
+	int ret = 0;
+	TX_BEGIN(pop) {
 
-        TOID(struct entry) e = TX_NEW(struct entry);
-        D_RW(e)->key = key;
-        D_RW(e)->value = value;
-        D_RW(e)->next = D_RO(buckets)->bucket[h];
-        D_RW(buckets)->bucket[h] = e;
-        D_RW(hashmap)->count++;
-        num++;
-    } TX_ONABORT {
-        fprintf(stderr, "transaction aborted: %s\n",
-                pmemobj_errormsg());
-        ret = -1;
-    } TX_END
+		TX_ADD_FIELD(hashmap, count);
 
-    if (ret)
-        return ret;
+		TOID(struct entry) e = TX_NEW(struct entry);
+		TX_MEMCPY(D_RW(&D_RW(e)->key), &key, sizeof(uint64_t));
+		TX_MEMCPY(D_RW(&D_RW(e)->value), &value, sizeof(PMEMoid));
+		TX_MEMCPY(D_RW(&D_RW(e)->next), &D_RO(buckets)->bucket[h], sizeof(TOID(struct entry)));
 
-    if (num > MAX_HASHSET_THRESHOLD ||
-        (num > MIN_HASHSET_THRESHOLD &&
-         D_RO(hashmap)->count > 2 * D_RO(buckets)->nbuckets))
-        hm_tx_rebuild(pop, hashmap, D_RO(buckets)->nbuckets * 2);
+		D_RW(e)->next = D_RO(buckets)->bucket[h];
+		D_RW(buckets)->bucket[h] = e;
+		D_RW(hashmap)->count = D_RO(hashmap)->count + 1;
 
-    return 0;
+		num++;
+	} TX_ONABORT {
+		fprintf(stderr, "transaction aborted: %s\n",
+			pmemobj_errormsg());
+		ret = -1;
+	} TX_END
+
+	if (ret)
+		return ret;
+
+	if (num > MAX_HASHSET_THRESHOLD ||
+			(num > MIN_HASHSET_THRESHOLD &&
+			D_RO(hashmap)->count > 2 * D_RO(buckets)->nbuckets))
+		hm_tx_rebuild(pop, hashmap, D_RO(buckets)->nbuckets * 2);
+
+	return 0;
 }
 ```
 
-In the corrected code, we have added the necessary transactional operations using the `TX_ADD_FIELD` macro for the `buckets`, `count`, `key`, and `value` fields. We have also assigned the `key`, `value`, and `next` fields of the new entry `e` using the `D_RW` macro.
-
-Please note that the `PMTest_assign` and `PM_EQU` macros were not recognized, so they have been removed from the code. If these macros are necessary for your specific use case, please provide their definitions, and we can incorporate them into the corrected code.
+In the corrected code, we have replaced the `PMTest_assign` macro with `TX_MEMCPY` to correctly copy the values into the persistent memory. We have also added the necessary transactional annotations using `TX_BEGIN`, `TX_ADD_FIELD`, `TX_NEW`, and `TX_MEMCPY` to ensure the changes are made atomically.

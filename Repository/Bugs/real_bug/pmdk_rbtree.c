@@ -22,7 +22,7 @@ rbtree_map_rotate(TOID(struct rbtree_map) map,
 
 	TX_ADD(NODE_P(node));
 	PM_EQU(NODE_PARENT_AT(node, NODE_LOCATION(node)), child);
-	// TX_SET(NODE_P(node), slots[NODE_LOCATION(node)], child);
+
 
 	PM_EQU(D_RW(child)->slots[c], node);
 	PM_EQU(D_RW(node)->parent, child);
@@ -65,7 +65,6 @@ rbtree_map_remove(PMEMobjpool *pop, TOID(struct rbtree_map) map, uint64_t key)
 		} else {
 			TX_ADD(y);
 			PM_EQU(NODE_PARENT_AT(y, NODE_LOCATION(y)), x);
-			//TX_SET(NODE_P(y), slots[NODE_LOCATION(y)], x);
 				
 		// BUG#2 //
 		
@@ -87,7 +86,6 @@ rbtree_map_remove(PMEMobjpool *pop, TOID(struct rbtree_map) map, uint64_t key)
 
 			TX_ADD(NODE_P(n));
 			PM_EQU(NODE_PARENT_AT(n, NODE_LOCATION(n)), y);
-			// TX_SET(NODE_P(n), slots[NODE_LOCATION(n)], y);
 				
 			// BUG#3 //
 		

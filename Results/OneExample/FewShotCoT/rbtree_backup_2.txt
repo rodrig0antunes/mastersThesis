@@ -1,4 +1,5 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ``` C
 /*
  * rbtree_map_rotate -- (internal) performs a left/right rotation around a node
@@ -10,34 +11,32 @@ rbtree_map_rotate(TOID(struct rbtree_map) map,
 	TOID(struct tree_map_node) child = D_RO(node)->slots[!c];
 	TOID(struct tree_map_node) s = D_RO(map)->sentinel;
 		
-	// BUG //
-	TX_BEGIN(map.oid) {
-		TX_ADD(node);
-		TX_ADD(child);
-		
-		PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
+		// BUG //
+
+	TX_ADD(node);
+	TX_ADD(child);
+
+	
+	PM_EQU(D_RW(node)->slots[!c], D_RO(child)->slots[c]);
 		
 		// BUG //
-		if (!TOID_EQUALS(D_RO(child)->slots[c], s))
-			TX_SET(D_RW(child)->slots[c], parent, node);
-		
-		PM_EQU(NODE_P(child), NODE_P(node));
 
-		TX_SET(NODE_P(node), slots[NODE_LOCATION(node)], child);
+	if (!TOID_EQUALS(D_RO(child)->slots[c], s))
+		TX_SET(D_RW(child)->slots[c], parent, node);
+	
+	PM_EQU(NODE_P(child), NODE_P(node));
 
-		PM_EQU(D_RW(child)->slots[c], node);
-		PM_EQU(D_RW(node)->parent, child);
-	} TX_ONABORT {
-		// handle transaction abort
-	} TX_END
+	TX_SET(NODE_P(node), slots[NODE_LOCATION(node)], child);
+
+	PM_EQU(D_RW(child)->slots[c], node);
+	PM_EQU(D_RW(node)->parent, child);
 }
 ```
 
 ### Explanation
-In the corrected program, the transaction is properly defined using `TX_BEGIN` and `TX_END` macros. The `TX_ADD` macro is used to register the `node` and `child` objects as part of the transaction. This ensures that any modifications made to these objects are properly recorded and can be rolled back if the transaction aborts.
-
-The first `// BUG //` section is fixed by adding the `TX_BEGIN` macro before the transactional code block. This ensures that the modifications made to `node` and `child` are part of the transaction.
-
-The second `// BUG //` section is fixed by adding the `TX_SET` macro to update the `parent` field of `child` with the value of `node`. This change is also made within the transactional code block.
-
-By properly defining the transaction and registering the objects to be modified, the corrected program ensures that the modifications made to the persistent memory objects are consistent and durable.
+In the incorrect program, there are two bugs to fix, both delimited by the '// BUG //' expressions.
+In the corrected program, the bug fixes are put in the areas of the code delimited by the '// BUG //' expressions.
+In the correction, two lines 'TX_ADD(node);' and 'TX_ADD(child);' are added before the memory operations.
+These lines tell the transaction system that it is intended to modify the 'node' and 'child' pointers during the transaction. It essentially registers 'node' and 'child' as a part of the transaction, making sure that if the transaction aborts, the changes to 'node' and 'child' are rolled back as well.
+By adding 'TX_ADD(node);' and 'TX_ADD(child);', the transaction system ensures that the memory operations are properly recorded. 
+If the transaction is successful, these changes will be committed, and if the transaction aborts, they will be rolled back, maintaining the consistency of your persistent memory data structures.

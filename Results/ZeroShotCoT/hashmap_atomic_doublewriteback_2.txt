@@ -1,22 +1,13 @@
-To resolve the bug, we need to identify the issue in the code. The bug is indicated by the "// BUG //" comment. Let's analyze the code within that area.
+To resolve the bug, we need to fix the code inside the delimited area. 
 
-The first issue is with the line:
-```c
-PM_EQU(D_RW(hashmap)->count, D_RO(hashmap)->count - 1);
-```
-It seems that the intention is to decrement the value of `count` by 1. However, the correct syntax for assignment is `=` instead of `EQU`. So, we need to replace `PM_EQU` with `D_RW(hashmap)->count =`.
+Looking at the code, it seems that the bug is related to updating the count of the hashmap after removing an entry. The code tries to decrement the count by 1, but it is not done correctly.
 
-The second issue is with the lines:
-```c
-pmemobj_persist(pop, &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));
-pmemobj_persist(pop, &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));
-```
-It seems that the intention is to persist the updated value of `count` to persistent memory. However, the second `pmemobj_persist` call is redundant and unnecessary. We can remove the second call.
+To fix this, we need to update the count of the hashmap correctly. We can do this by using the atomic_fetch_sub function provided by the PMDK library. This function atomically subtracts a value from a variable and returns the original value.
 
-Now, let's correct the code by applying the fixes mentioned above:
+Here's the corrected code:
 
-```c
-/* 
+``` C
+/*
  * hm_atomic_remove -- removes specified value from the hashmap,
  * returns:
  * - 1 if successful,
@@ -25,51 +16,52 @@ Now, let's correct the code by applying the fixes mentioned above:
  */
 PMEMoid
 hm_atomic_remove(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
-                 uint64_t key)
+		uint64_t key)
 {
-    TOID(struct buckets) buckets = D_RO(hashmap)->buckets;
-    TOID(struct entry) var;
+	TOID(struct buckets) buckets = D_RO(hashmap)->buckets;
+	TOID(struct entry) var;
 
-    uint64_t h = hash(&hashmap, &buckets, key);
-    POBJ_LIST_FOREACH(var, &D_RW(buckets)->bucket[h], list) {
-        if (D_RO(var)->key == key)
-            break;
-    }
+	uint64_t h = hash(&hashmap, &buckets, key);
+	POBJ_LIST_FOREACH(var, &D_RW(buckets)->bucket[h], list) {
+		if (D_RO(var)->key == key)
+			break;
+	}
 
-    if (TOID_IS_NULL(var))
-        return OID_NULL;
+	if (TOID_IS_NULL(var))
+		return OID_NULL;
 
-    PM_EQU(D_RW(hashmap)->count_dirty, 1);
-    pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
-                    sizeof(D_RW(hashmap)->count_dirty));
+	PM_EQU(D_RW(hashmap)->count_dirty, 1);
+	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
+			sizeof(D_RW(hashmap)->count_dirty));
 
-    if (POBJ_LIST_REMOVE_FREE(pop, &D_RW(buckets)->bucket[h],
-                              var, list)) {
-        fprintf(stderr, "list remove failed: %s\n",
-                pmemobj_errormsg());
-        return OID_NULL;
-    }
+	if (POBJ_LIST_REMOVE_FREE(pop, &D_RW(buckets)->bucket[h],
+			var, list)) {
+		fprintf(stderr, "list remove failed: %s\n",
+			pmemobj_errormsg());
+		return OID_NULL;
+	}
+		
+	// Update the count of the hashmap correctly
+	PM_EQU(D_RW(hashmap)->count, atomic_fetch_sub(&D_RW(hashmap)->count, 1));
+	pmemobj_persist(pop, &D_RW(hashmap)->count,
+			sizeof(D_RW(hashmap)->count));
 
-    D_RW(hashmap)->count = D_RO(hashmap)->count - 1;
-    pmemobj_persist(pop, &D_RW(hashmap)->count,
-                    sizeof(D_RW(hashmap)->count));
+	PMTest_isPersistedBefore(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty), &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));
 
-    PMTest_isPersistedBefore(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty), &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));
+	PM_EQU(D_RW(hashmap)->count_dirty, 0);
+	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
+			sizeof(D_RW(hashmap)->count_dirty));
 
-    PM_EQU(D_RW(hashmap)->count_dirty, 0);
-    pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
-                    sizeof(D_RW(hashmap)->count_dirty));
+	if (D_RO(hashmap)->count < D_RO(buckets)->nbuckets)
+		hm_atomic_rebuild(pop, hashmap, D_RO(buckets)->nbuckets / 2);
 
-    if (D_RO(hashmap)->count < D_RO(buckets)->nbuckets)
-        hm_atomic_rebuild(pop, hashmap, D_RO(buckets)->nbuckets / 2);
+	PMTest_isPersistedBefore(&D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count), &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));
 
-    PMTest_isPersistedBefore(&D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count), &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));
+	PMTest_isPersistent(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));
+	PMTest_isPersistent(&D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));
 
-    PMTest_isPersistent(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));
-    PMTest_isPersistent(&D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));
-
-    return D_RO(var)->value;
+	return D_RO(var)->value;
 }
 ```
 
-This should resolve the bug in the code.
+This should fix the bug and correctly update the count of the hashmap after removing an entry.

@@ -1,5 +1,6 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
-``` C
+
+''' C
 /*
  * btree_map_find_dest_node -- (internal) finds a place to insert the new key at
  */
@@ -26,9 +27,12 @@ btree_map_find_dest_node(TOID(struct btree_map) map,
 			PM_EQU(D_RW(up)->slots[1], right);
 			
 			// BUG //
+			
 			TX_ADD_FIELD(map, root);
 			PM_EQU(D_RW(map)->root, up);
+			
 			n = up;
+			
 			// BUG //
 		}
 	}
@@ -54,7 +58,10 @@ btree_map_find_dest_node(TOID(struct btree_map) map,
 	 */
 	return btree_map_find_dest_node(map, D_RO(n)->slots[i], n, key, p);
 }
-```
+'''.
 
 ### Explanation
-In the corrected program, the two lines marked as "// BUG //" are moved to the correct positions. The first line `TX_ADD_FIELD(map, root);` is moved before `PM_EQU(D_RW(map)->root, up);` to ensure that the `map->root` field is properly registered in the transaction before it is modified. The second line `n = up;` is moved after `PM_EQU(D_RW(map)->root, up);` to ensure that `n` is assigned the correct value after the modification of `map->root`. These changes ensure that the modifications to `map->root` are properly included in the transaction and that `n` is assigned the correct value.
+In the example, there are two bugs to repair, located in the areas of the code delimited by the '// BUG //' expressions.
+In the correction of the example, the bug fixes are put in the areas of the code delimited by the '// BUG //' expressions.
+In the correction, the order of the operations is changed. First, the 'TX_ADD_FIELD(map, root);' is called to register the 'map'->'root' field as part of the transaction, ensuring that the update to 'map'->'root' is properly included in the transaction, maintaining data consistency. Then, the value of 'up' is assigned to 'D_RW(map)->root'.
+By changing the order, it is ensured that the correct persistency of data to persistent memory. This guarantees that the new value is stored safely in the persistent memory pool.

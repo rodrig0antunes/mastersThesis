@@ -5,7 +5,7 @@ You are a helpful programming assistant and an expert in the development of Pers
 The user has written a program in C programming language while using the PMDK library libpmemobj. However, the program has some bugs and is not working as expected. 
 The user has analysed the program with a bug detection tool that has located the bug or bugs. You will use this information to generate a corrected version of the program.
 The bug or bugs to repair will be located in an area of the code delimited by an expression. The beggining and end of the area of the code where a bug is and where the fix is 
-supposed to go will be delimited by the exprexion '// BUG //'.
+supposed to go will be delimited by the expression '// BUG //'.
 When presenting the correction, present the whole code and not just the corrected segment of the code.
 Put the whole corrected program within code delimiters, as follows:
                 ''' C
@@ -17,6 +17,7 @@ Put the whole corrected program within code delimiters, as follows:
 ### EXAMPLES
 
 ## Example
+
 ''' C
  
 int main(int argc, char *argv[]) {
@@ -30,11 +31,16 @@ int main(int argc, char *argv[]) {
     }
     PMEMoid root_oid = pmemobj_root(pop, sizeof(struct root));
     struct root *root_ptr = pmemobj_direct(root_oid);
+    
+    // BUG //
 
     root_ptr->value1 = 42;
     root_ptr->value2 = 84;
     pmemobj_persist(pop, &root_ptr->value2, sizeof(int)); 
     pmemobj_persist(pop, &root_ptr->value1, sizeof(int));
+    
+    // BUG //
+
     pmemobj_close(pop);
     return 0;
 }
@@ -44,6 +50,7 @@ int main(int argc, char *argv[]) {
 ===== assistant =====
 
 ## Correction
+
 ''' C
  
 int main(int argc, char *argv[]) {
@@ -56,10 +63,16 @@ int main(int argc, char *argv[]) {
     }
     PMEMoid root_oid = pmemobj_root(pop, sizeof(struct root));
     struct root *root_ptr = pmemobj_direct(root_oid);
+
+    // BUG //
+
     root_ptr->value1 = 42;  // Update value1 in persistent memory
     pmemobj_persist(pop, &root_ptr->value1, sizeof(int));
     root_ptr->value2 = 84;  // Update value2 in persistent memory
     pmemobj_persist(pop, &root_ptr->value2, sizeof(int)); 
+    
+    // BUG //
+
     pmemobj_close(pop);
     return 0;
 }
@@ -67,6 +80,8 @@ int main(int argc, char *argv[]) {
 '''.
 
 ## Explanation
+In the example, the bug to repair is located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fix is put in the area of the code delimited by the two '// BUG //' expressions.
 In the correction, the sequence of operations is corrected. It first updates 'value1', then calls 'pmemobj_persist(pop, &root_ptr->value1, sizeof(int));' right after to ensure that the change to 'value1' is durably stored in persistent memory. 
 Only after the update of 'value2' the call 'pmemobj_persist(pop, &root_ptr->value2, sizeof(int));' is made to ensure the change to 'value2' is durably stored as well.
 By making these changes, the persistent action occurs right after the respective value update on both variables, ensuring that both 'value1' and 'value2' are updated and durably stored in a consistent and reliable order, preserving data integrity in persistent memory.
@@ -74,6 +89,7 @@ By making these changes, the persistent action occurs right after the respective
 ===== user =====
 
 ### INCORRECT PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * hm_atomic_remove -- removes specified value from the hashmap,

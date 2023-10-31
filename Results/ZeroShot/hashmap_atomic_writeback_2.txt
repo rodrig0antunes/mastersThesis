@@ -1,54 +1,55 @@
+### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ``` C
 /*
-* hm_atomic_rebuild_finish -- finishes rebuild, assumes buckets_tmp is not null
-*/
+ * hm_atomic_rebuild_finish -- finishes rebuild, assumes buckets_tmp is not null
+ */
 static void
 hm_atomic_rebuild_finish(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap)
 {
-    TOID(struct buckets) cur = D_RO(hashmap)->buckets;
-    TOID(struct buckets) tmp = D_RO(hashmap)->buckets_tmp;
+	TOID(struct buckets) cur = D_RO(hashmap)->buckets;
+	TOID(struct buckets) tmp = D_RO(hashmap)->buckets_tmp;
 
-    for (size_t i = 0; i < D_RO(cur)->nbuckets; ++i) {
-        while (!POBJ_LIST_EMPTY(&D_RO(cur)->bucket[i])) {
-            TOID(struct entry) en =
-                POBJ_LIST_FIRST(&D_RO(cur)->bucket[i]);
-            uint64_t h = hash(&hashmap, &tmp, D_RO(en)->key);
+	for (size_t i = 0; i < D_RO(cur)->nbuckets; ++i) {
+		while (!POBJ_LIST_EMPTY(&D_RO(cur)->bucket[i])) {
+			TOID(struct entry) en =
+					POBJ_LIST_FIRST(&D_RO(cur)->bucket[i]);
+			uint64_t h = hash(&hashmap, &tmp, D_RO(en)->key);
 
-            if (POBJ_LIST_MOVE_ELEMENT_HEAD(pop,
-                &D_RW(cur)->bucket[i],
-                &D_RW(tmp)->bucket[h],
-                en, list, list)) {
-                fprintf(stderr, "move failed: %s\n",
-                    pmemobj_errormsg());
-                abort();
-            }
-        }
-    }
+			if (POBJ_LIST_MOVE_ELEMENT_HEAD(pop,
+					&D_RW(cur)->bucket[i],
+					&D_RW(tmp)->bucket[h],
+					en, list, list)) {
+				fprintf(stderr, "move failed: %s\n",
+						pmemobj_errormsg());
+				abort();
+			}
+		}
+	}
 
-    POBJ_FREE(&D_RO(hashmap)->buckets);
+	POBJ_FREE(&D_RO(hashmap)->buckets);
 
-    PM_EQU(D_RW(hashmap)->buckets, D_RO(hashmap)->buckets_tmp);
-    pmemobj_persist(pop, &D_RW(hashmap)->buckets,
-        sizeof(D_RW(hashmap)->buckets));
+	PM_EQU(D_RW(hashmap)->buckets, D_RO(hashmap)->buckets_tmp);
+	pmemobj_persist(pop, &D_RW(hashmap)->buckets,
+			sizeof(D_RW(hashmap)->buckets));
 
-    /*
-    * We have to set offset manually instead of substituting OID_NULL,
-    * because we won't be able to recover easily if crash happens after
-    * pool_uuid_lo, but before offset is set. Another reason why everyone
-    * should use transaction API.
-    * See recovery process in hm_init and TOID_IS_NULL macro definition.
-    */
+	/*
+	 * We have to set offset manually instead of substituting OID_NULL,
+	 * because we won't be able to recover easily if crash happens after
+	 * pool_uuid_lo, but before offset is set. Another reason why everyone
+	 * should use transaction API.
+	 * See recovery process in hm_init and TOID_IS_NULL macro definition.
+	 */
+			
+	// BUG //
+	PM_EQU(D_RW(hashmap)->buckets_tmp.oid.off, 0);
+	// BUG //
 
-    // BUG //
+	PM_EQU(D_RW(hashmap)->buckets_tmp, TOID_NULL(struct buckets));
+	pmemobj_persist(pop, &D_RW(hashmap)->buckets_tmp,
+			sizeof(D_RW(hashmap)->buckets_tmp));
 
-    D_RW(hashmap)->buckets_tmp.oid.off = 0;
-    pmemobj_persist(pop, &D_RW(hashmap)->buckets_tmp,
-        sizeof(D_RW(hashmap)->buckets_tmp));
-
-    // BUG //
-
-    PMTest_isPersistent(&D_RW(hashmap)->buckets, sizeof(D_RW(hashmap)->buckets));
-    PMTest_isPersistent(&D_RW(hashmap)->buckets_tmp, sizeof(D_RW(hashmap)->buckets_tmp));
+	PMTest_isPersistent(&D_RW(hashmap)->buckets, sizeof(D_RW(hashmap)->buckets));
+	PMTest_isPersistent(&D_RW(hashmap)->buckets_tmp, sizeof(D_RW(hashmap)->buckets_tmp));
 }
 ```
-The bug in the provided program is that the assignment of `0` to `D_RW(hashmap)->buckets_tmp.oid.off` is not being persisted to the persistent memory. To fix this, we need to add the `pmemobj_persist` function call after the assignment statement. Additionally, the `PMTest_isPersistent` function calls are not necessary and can be removed.

@@ -1,46 +1,45 @@
+### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ``` C
-/* 
-* btree_map_remove_from_node -- (internal) removes element from node 
-*/
+/*
+ * btree_map_remove_from_node -- (internal) removes element from node
+ */
 static void
 btree_map_remove_from_node(TOID(struct btree_map) map,
-                           TOID(struct tree_map_node) node,
-                           TOID(struct tree_map_node) parent, int p)
+	TOID(struct tree_map_node) node,
+	TOID(struct tree_map_node) parent, int p)
 {
 
-    // BUG //
+	// BUG //
+	if (TOID_IS_NULL(D_RO(node)->slots[0])) { /* leaf */
 
-    if (TOID_IS_NULL(D_RO(node)->slots[0])) { /* leaf */
-        // TX_ADD(node);
-        if (D_RO(node)->n == 1 || p == BTREE_ORDER - 2)
-            PM_EQU(D_RW(node)->items[p], EMPTY_ITEM);
+		if (D_RO(node)->n == 1 || p == BTREE_ORDER - 2)
+			PM_EQU(D_RW(node)->items[p], EMPTY_ITEM);
+		else {
+			PM_MEMMOVE(&D_RW(node)->items[p],
+				&D_RW(node)->items[p + 1],
+				sizeof(struct tree_map_node_item) *
+				(D_RO(node)->n - p - 1));
+		}
 
-        // BUG //
+		PM_EQU(D_RW(node)->n, D_RO(node)->n - 1);
+		return;
+	}
+	// BUG //
 
-        else if (D_RO(node)->n != 1) {
-            PM_MEMMOVE(&D_RW(node)->items[p],
-                       &D_RW(node)->items[p + 1],
-                       sizeof(struct tree_map_node_item) *
-                           (D_RO(node)->n - p));
-        }
+	/* can't delete from non-leaf nodes, remove successor */
+	TOID(struct tree_map_node) rchild = D_RW(node)->slots[p + 1];
+	TOID(struct tree_map_node) lp = node;
+	TOID(struct tree_map_node) lm =
+		btree_map_get_leftmost_leaf(map, rchild, &lp);
 
-        PM_EQU(D_RW(node)->n, D_RO(node)->n - 1);
-        return;
-    }
+	TX_ADD_FIELD(node, items[p]);
+	PM_EQU(D_RW(node)->items[p], D_RO(lm)->items[0]);
 
-    /* can't delete from non-leaf nodes, remove successor */
-    TOID(struct tree_map_node) rchild = D_RW(node)->slots[p + 1];
-    TOID(struct tree_map_node) lp = node;
-    TOID(struct tree_map_node) lm =
-        btree_map_get_leftmost_leaf(map, rchild, &lp);
+	btree_map_remove_from_node(map, lm, lp, 0);
 
-    TX_ADD_FIELD(node, items[p]);
-    PM_EQU(D_RW(node)->items[p], D_RO(lm)->items[0]);
-
-    btree_map_remove_from_node(map, lm, lp, 0);
-
-    if (D_RO(lm)->n < BTREE_MIN) /* right child can be deficient now */
-        btree_map_rebalance(map, lm, lp,
-                            TOID_EQUALS(lp, node) ? p + 1 : 0);
+	if (D_RO(lm)->n < BTREE_MIN) /* right child can be deficient now */
+		btree_map_rebalance(map, lm, lp,
+			TOID_EQUALS(lp, node) ? p + 1 : 0);
 }
 ```

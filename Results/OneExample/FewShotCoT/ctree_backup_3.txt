@@ -1,4 +1,5 @@
 ### CORRECTED PERSISTENT MEMORY PROGRAM
+
 ''' C
 /*
  * ctree_map_insert -- inserts a new key-value pair into the map
@@ -22,14 +23,18 @@ ctree_map_insert(PMEMobjpool *pop, TOID(struct ctree_map) map,
 	TX_BEGIN(pop) {
 		
 		// BUG //
+
+		TX_ADD_DIRECT(p);
 		if (p->key == 0 || p->key == key) {
 			PM_EQU(*p, e);
 			pmemobj_tx_add_range_direct(p, sizeof(*p));
 		} else {
 			ctree_map_insert_leaf(&D_RW(map)->root, e,
 					find_crit_bit(p->key, key));
-		}
+		
 		// BUG //
+
+		}
 	} TX_ONABORT {
 		ret = 1;
 	} TX_END
@@ -41,6 +46,10 @@ ctree_map_insert(PMEMobjpool *pop, TOID(struct ctree_map) map,
 '''.
 
 ### Explanation
-In the correction, the two lines marked as '// BUG //' are moved inside the transaction block. 
-The first line is moved inside the transaction block to ensure that the modification of the 'p' pointer is properly recorded by the transaction system. By adding 'pmemobj_tx_add_range_direct(p, sizeof(*p));', the transaction system ensures that the changes made to 'p' are properly tracked and committed or rolled back as part of the transaction.
-The second line is also moved inside the transaction block to ensure that the 'ctree_map_insert_leaf' function is called within the transaction. This ensures that any modifications made by this function are also properly recorded and committed or rolled back as part of the transaction.
+In the given code, there are two bugs to fix, both located in the area of the code delimited by the two '// BUG //' expressions.
+
+In the correction, the first bug fix is to add the line 'TX_ADD_DIRECT(p);' before modifying the 'p' pointer. This line tells the transaction system that it is intended to modify the 'p' pointer during the transaction. It essentially registers 'p' as a part of the transaction, making sure that if the transaction aborts, the changes to 'p' are rolled back as well.
+
+The second bug fix is to add the closing brace '}' after the call to 'ctree_map_insert_leaf' function. This closing brace was missing in the original code, causing a syntax error.
+
+By adding 'TX_ADD_DIRECT(p);' and the closing brace '}', the transaction system ensures that the modifications to 'p' and the call to 'ctree_map_insert_leaf' function are properly recorded. If the transaction is successful, these changes will be committed, and if the transaction aborts, they will be rolled back, maintaining the consistency of your persistent memory data structures.

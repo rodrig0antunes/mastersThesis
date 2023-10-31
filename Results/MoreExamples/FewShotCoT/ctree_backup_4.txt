@@ -1,5 +1,6 @@
-### CORRECTED PERSISTENT MEMORY PROGRAM
-''' C
+### Corrected Persistent Memory Program
+
+``` C
 /*
  * ctree_map_insert_leaf -- (internal) inserts a new leaf at the position
  */
@@ -29,7 +30,7 @@ ctree_map_insert_leaf(struct tree_map_entry *p,
 	}
 
 	// BUG //
-	
+
 	/* insert the found destination in the other slot */
 	PM_EQU(D_RW(new_node)->entries[!d], *p);
 	
@@ -38,14 +39,18 @@ ctree_map_insert_leaf(struct tree_map_entry *p,
 
 	pmemobj_tx_add_range_direct(p, sizeof(*p));
 	
-	// BUG //
-	
+	// BUG // 
 	pmemobj_tx_add_range_direct(new_node, sizeof(*new_node));
 }
-'''.
+```
 
-## Explanation
-In the correction, two lines are added to fix the bugs in the program. 
-The first bug is fixed by adding the line 'pmemobj_tx_add_range_direct(p, sizeof(*p));' after the assignment 'PM_EQU(p->slot, new_node.oid);'. This line tells the transaction system that the range of memory starting from 'p' and with a size of 'sizeof(*p)' is intended to be modified during the transaction. It ensures that if the transaction aborts, the changes to 'p' are rolled back as well. By adding 'pmemobj_tx_add_range_direct(p, sizeof(*p));', the transaction system properly records the changes made to 'p' and ensures that they are committed if the transaction is successful or rolled back if the transaction aborts.
+### Explanation
+In the example, there are two bugs to repair, located in the areas of the code delimited by the two `// BUG //` expressions.
 
-The second bug is fixed by adding the line 'pmemobj_tx_add_range_direct(new_node, sizeof(*new_node));' after the line 'pmemobj_tx_add_range_direct(p, sizeof(*p));'. This line tells the transaction system that the range of memory starting from 'new_node' and with a size of 'sizeof(*new_node)' is intended to be modified during the transaction. It ensures that if the transaction aborts, the changes to 'new_node' are rolled back as well. By adding 'pmemobj_tx_add_range_direct(new_node, sizeof(*new_node));', the transaction system properly records the changes made to 'new_node' and ensures that they are committed if the transaction is successful or rolled back if the transaction aborts.
+In the correction of the example, the bug fixes are put in the areas of the code delimited by the two `// BUG //` expressions.
+
+In the first bug fix, the line `PM_EQU(D_RW(new_node)->entries[!d], *p);` is added to insert the found destination in the other slot. This line assigns the value of `*p` to `D_RW(new_node)->entries[!d]`, ensuring that the correct destination is inserted in the other slot.
+
+In the second bug fix, the line `pmemobj_tx_add_range_direct(new_node, sizeof(*new_node));` is added to register the `new_node` object as part of the transaction. This line ensures that any changes made to `new_node` are properly recorded and persisted in the persistent memory pool.
+
+By adding these bug fixes, the program will correctly insert a new leaf at the specified position in the persistent memory tree map.

@@ -1,5 +1,6 @@
-### CORRECTED PERSISTENT MEMORY PROGRAM
-''' C
+### Corrected Persistent Memory Program
+
+``` C
 /*
  * hm_atomic_insert -- inserts specified value into the hashmap,
  * returns:
@@ -40,19 +41,23 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 		return -1;
 	}
 
-	// BUG //
+		// BUG //
+
 	PM_EQU(D_RW(hashmap)->count, (D_RW(hashmap)->count + 1));
 	pmemobj_persist(pop, &D_RW(hashmap)->count,
 			sizeof(D_RW(hashmap)->count));
-	// BUG //
-
+		
+		// BUG //
+		
 	PMTest_isPersistedBefore(&D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty), &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));
+
 
 	PM_EQU(D_RW(hashmap)->count_dirty, 0);
 	pmemobj_persist(pop, &D_RW(hashmap)->count_dirty,
 			sizeof(D_RW(hashmap)->count_dirty));
 
 	PMTest_isPersistedBefore(&D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count), &D_RW(hashmap)->count_dirty, sizeof(D_RW(hashmap)->count_dirty));
+
 
 	num++;
 	if (num > MAX_HASHSET_THRESHOLD ||
@@ -65,10 +70,10 @@ hm_atomic_insert(PMEMobjpool *pop, TOID(struct hashmap_atomic) hashmap,
 
 	return 0;
 }
-'''.
+```
 
 ### Explanation
-In the correction, the two lines marked as '// BUG //' are moved to the correct position within the code. 
-The first line 'PM_EQU(D_RW(hashmap)->count, (D_RW(hashmap)->count + 1));' is moved to the correct position before the call to 'pmemobj_persist' to ensure that the increment of 'count' is properly persisted in the persistent memory pool. 
-The second line 'pmemobj_persist(pop, &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));' is moved to the correct position after the call to 'pmemobj_persist' for 'count_dirty' to ensure that the value of 'count' is durably stored in the persistent memory pool. 
-By moving these lines to the correct positions, the corrections ensure that the changes to 'count' are properly persisted and the data remains consistent in the persistent memory pool.
+In the example, there are two bugs to repair, located in the area of the code delimited by the two '// BUG //' expressions. 
+In the correction of the example, the bug fixes are put in the area of the code delimited by the two '// BUG //' expressions.
+In the correction, after incrementing the 'count' variable, it needs to be included 'pmemobj_persist(pop, &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));' to ensure that the value of 'count' is durably stored in the persistent memory pool. 
+By adding 'pmemobj_persist(pop, &D_RW(hashmap)->count, sizeof(D_RW(hashmap)->count));', it is guaranteed that the assignment to 'count' is properly preserved, and the data remains consistent. This correction ensures data durability in persistent memory.
